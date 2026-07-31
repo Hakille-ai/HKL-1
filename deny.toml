@@ -1,6 +1,6 @@
 [advisories]
 vulnerability = "deny"
-unmaintained = "warn"
+unmaintained = "transitive"
 yanked = "warn"
 notice = "warn"
 
@@ -11,4 +11,4 @@ default = "deny"
 
 [bans]
 multiple-versions = "deny"
-highlights = ["duplicate"]
+highlight = "all"
