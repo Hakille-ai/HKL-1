@@ -31,7 +31,10 @@ impl SpikeTextDecoder {
     }
 
     /// Decode Layer 4 output motor/text firing potentials into text characters/tokens
-    pub fn decode_firing_rates(&mut self, motor_potentials: &[FixedPoint; VOCAB_SIZE]) -> Option<u8> {
+    pub fn decode_firing_rates(
+        &mut self,
+        motor_potentials: &[FixedPoint; VOCAB_SIZE],
+    ) -> Option<u8> {
         let mut max_val = FixedPoint::ZERO;
         let mut best_token = 0u8;
 

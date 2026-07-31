@@ -94,8 +94,8 @@ impl MatrixCompartment {
     pub fn step(&mut self, striosome_activity: FixedPoint, input_activity: FixedPoint) {
         let excitation = input_activity * (FixedPoint::ONE - self.striosome_affinity);
         let inhibition = striosome_activity * self.inhibition_strength;
-        self.activity = (excitation - inhibition + FixedPoint::ONE)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.activity =
+            (excitation - inhibition + FixedPoint::ONE).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         self.active = self.activity > FixedPoint::from_bits(6554);
         self.lateral_inhibition = self.activity * FixedPoint::from_bits(9830);
     }
@@ -199,7 +199,9 @@ impl StriosomeMatrixSystem {
     }
 
     pub fn dopamine_gate_open(&self) -> bool {
-        self.striosomes.iter().any(|s| s.learning_gate > FixedPoint::ZERO)
+        self.striosomes
+            .iter()
+            .any(|s| s.learning_gate > FixedPoint::ZERO)
     }
 
     pub fn matrix_activation_level(&self) -> FixedPoint {

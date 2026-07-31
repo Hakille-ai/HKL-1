@@ -4,7 +4,7 @@
 
 use crate::core::math::FixedPoint;
 use crate::core::memory::NeuronId;
-use crate::io::buffers::{ingest_spike, EncodedSpike, Modality};
+use crate::io::buffers::{EncodedSpike, Modality, ingest_spike};
 
 pub const VOCAB_SIZE: usize = 256;
 pub const MAX_TOKEN_LEN: usize = 32;

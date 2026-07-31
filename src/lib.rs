@@ -14,24 +14,20 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+pub mod audio;
+pub mod bio;
 pub mod bsp;
 pub mod cognitive;
 pub mod core;
+pub mod efpga;
 pub mod io;
+pub mod nlp;
 pub mod safety;
 pub mod snn;
 pub mod swarm;
 pub mod system;
 pub mod telemetry;
 pub mod vision;
-pub mod nlp;
-pub mod audio;
-pub mod efpga;
-pub mod bio;
-
-
-
-
 
 /// HKL-1 Version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

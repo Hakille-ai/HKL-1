@@ -3,8 +3,8 @@
 //! dual ON/OFF ganglion cell pathways, and asynchronous DVS (Dynamic Vision Sensor) event encoding.
 
 use crate::core::math::FixedPoint;
-use crate::io::buffers::{ingest_spike, EncodedSpike, Modality};
 use crate::core::memory::NeuronId;
+use crate::io::buffers::{EncodedSpike, Modality, ingest_spike};
 
 pub const VISION_WIDTH: usize = 32;
 pub const VISION_HEIGHT: usize = 32;
@@ -13,11 +13,41 @@ pub const VISION_PIXELS: usize = VISION_WIDTH * VISION_HEIGHT;
 /// Fixed 5x5 Difference of Gaussians (DoG) kernel in Q16.16
 /// Outer surround negative, inner center positive
 pub const DOG_KERNEL_5X5: [[FixedPoint; 5]; 5] = [
-    [FixedPoint(-1310), FixedPoint(-2621), FixedPoint(-3932), FixedPoint(-2621), FixedPoint(-1310)],
-    [FixedPoint(-2621), FixedPoint( 6553), FixedPoint(19660), FixedPoint( 6553), FixedPoint(-2621)],
-    [FixedPoint(-3932), FixedPoint(19660), FixedPoint(52428), FixedPoint(19660), FixedPoint(-3932)],
-    [FixedPoint(-2621), FixedPoint( 6553), FixedPoint(19660), FixedPoint( 6553), FixedPoint(-2621)],
-    [FixedPoint(-1310), FixedPoint(-2621), FixedPoint(-3932), FixedPoint(-2621), FixedPoint(-1310)],
+    [
+        FixedPoint(-1310),
+        FixedPoint(-2621),
+        FixedPoint(-3932),
+        FixedPoint(-2621),
+        FixedPoint(-1310),
+    ],
+    [
+        FixedPoint(-2621),
+        FixedPoint(6553),
+        FixedPoint(19660),
+        FixedPoint(6553),
+        FixedPoint(-2621),
+    ],
+    [
+        FixedPoint(-3932),
+        FixedPoint(19660),
+        FixedPoint(52428),
+        FixedPoint(19660),
+        FixedPoint(-3932),
+    ],
+    [
+        FixedPoint(-2621),
+        FixedPoint(6553),
+        FixedPoint(19660),
+        FixedPoint(6553),
+        FixedPoint(-2621),
+    ],
+    [
+        FixedPoint(-1310),
+        FixedPoint(-2621),
+        FixedPoint(-3932),
+        FixedPoint(-2621),
+        FixedPoint(-1310),
+    ],
 ];
 
 /// Dual ON/OFF Ganglion Cell Response
@@ -93,7 +123,8 @@ impl RetinalEngine {
                 let delta_log = log_i - self.prev_log_frame[idx];
 
                 if delta_log.abs() > self.dvs_threshold {
-                    let neuron_idx = (self.base_neuron_id.index() as usize + idx) % crate::MAX_NEURONS;
+                    let neuron_idx =
+                        (self.base_neuron_id.index() as usize + idx) % crate::MAX_NEURONS;
                     let spike = EncodedSpike {
                         neuron_id: NeuronId::new(neuron_idx as u16),
                         intensity: delta_log.abs(),

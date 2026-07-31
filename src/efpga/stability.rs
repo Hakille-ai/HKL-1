@@ -74,7 +74,8 @@ impl SubnetworkStabilityAnalyzer {
         }
 
         if subnetwork.count > 0 {
-            subnetwork.avg_variance = total_var * FixedPoint::from_f32(1.0 / subnetwork.count as f32);
+            subnetwork.avg_variance =
+                total_var * FixedPoint::from_f32(1.0 / subnetwork.count as f32);
         }
 
         subnetwork

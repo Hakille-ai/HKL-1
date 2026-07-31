@@ -7,10 +7,10 @@
 
 #![cfg(test)]
 
-use hkl1::system::hardware_detect::HardwareDetector;
-use hkl1::io::buffers::{RingBuffer, LockFreeRingBuffer};
 use hkl1::core::memory::NeuronId;
+use hkl1::io::buffers::{LockFreeRingBuffer, RingBuffer};
 use hkl1::snn::neuron::SpikeEvent;
+use hkl1::system::hardware_detect::HardwareDetector;
 
 #[test]
 fn test_hardware_detector_emulated_profiling() {
@@ -18,9 +18,18 @@ fn test_hardware_detector_emulated_profiling() {
 
     // Verify auto-profile bounds
     assert!(profile.cpu_cores >= 1, "System must detect at least 1 core");
-    assert!(profile.recommended_max_neurons >= 64, "Recommended neurons must be >= 64");
-    assert!(profile.recommended_max_synapses >= 256, "Recommended synapses must be >= 256");
-    assert!(profile.recommended_worker_threads >= 1, "Worker threads must be >= 1");
+    assert!(
+        profile.recommended_max_neurons >= 64,
+        "Recommended neurons must be >= 64"
+    );
+    assert!(
+        profile.recommended_max_synapses >= 256,
+        "Recommended synapses must be >= 256"
+    );
+    assert!(
+        profile.recommended_worker_threads >= 1,
+        "Worker threads must be >= 1"
+    );
 }
 
 #[test]
@@ -57,8 +66,15 @@ fn test_lockfree_isr_spike_queue() {
     let popped = ring.pop_front();
     assert!(popped.is_some(), "Popped spike must exist");
     let spike = popped.unwrap();
-    assert_eq!(spike.neuron_id.index(), 42, "Neuron ID must match pushed ID 42");
-    assert_eq!(spike.timestamp, 12345, "Timestamp must match pushed timestamp");
+    assert_eq!(
+        spike.neuron_id.index(),
+        42,
+        "Neuron ID must match pushed ID 42"
+    );
+    assert_eq!(
+        spike.timestamp, 12345,
+        "Timestamp must match pushed timestamp"
+    );
 }
 
 #[test]

@@ -160,12 +160,17 @@ impl GlobalWorkspace {
             return false;
         }
         candidate.salience = candidate.salience.clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        candidate.confidence = candidate.confidence.clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        candidate.confidence = candidate
+            .confidence
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         candidate.novelty = candidate.novelty.clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        candidate.expected_reward =
-            candidate.expected_reward.clamp(FixedPoint::from_f32(-1.0), FixedPoint::ONE);
+        candidate.expected_reward = candidate
+            .expected_reward
+            .clamp(FixedPoint::from_f32(-1.0), FixedPoint::ONE);
         candidate.risk = candidate.risk.clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        candidate.energy_cost = candidate.energy_cost.clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        candidate.energy_cost = candidate
+            .energy_cost
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         candidate.valid = true;
 
         self.candidates[self.candidate_count] = candidate;
@@ -218,8 +223,8 @@ impl GlobalWorkspace {
         }
 
         let winner = self.candidates[idx];
-        let ignition_strength = (best_score - self.ignition_threshold)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        let ignition_strength =
+            (best_score - self.ignition_threshold).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         let mode = self.derive_mode(&winner, best_score);
         let frame = BroadcastFrame {
             specialist: winner.specialist,
@@ -242,10 +247,9 @@ impl GlobalWorkspace {
         self.stability = match mode {
             WorkspaceMode::Focused => (self.stability + FixedPoint::from_f32(0.03))
                 .clamp(FixedPoint::ZERO, FixedPoint::ONE),
-            WorkspaceMode::Crisis | WorkspaceMode::Guarded => {
-                (self.stability - FixedPoint::from_f32(0.05))
-                    .clamp(FixedPoint::ZERO, FixedPoint::ONE)
-            }
+            WorkspaceMode::Crisis | WorkspaceMode::Guarded => (self.stability
+                - FixedPoint::from_f32(0.05))
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE),
             _ => self.stability,
         };
         Some(frame)
@@ -264,7 +268,8 @@ impl GlobalWorkspace {
 
         let mut predictor = WorkspaceCandidate::new(SpecialistId::Predictor, now_ms, 2, None);
         predictor.salience = prediction_error;
-        predictor.confidence = (FixedPoint::ONE - prediction_error).clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        predictor.confidence =
+            (FixedPoint::ONE - prediction_error).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         predictor.novelty = novelty;
         predictor.expected_reward = (FixedPoint::from_f32(0.4) - prediction_error)
             .clamp(FixedPoint::from_f32(-1.0), FixedPoint::ONE);
@@ -273,7 +278,8 @@ impl GlobalWorkspace {
         self.submit(predictor);
 
         if let Some(action_hint) = action {
-            let mut actor = WorkspaceCandidate::new(SpecialistId::Actor, now_ms ^ 0xA17C, 4, Some(action_hint));
+            let mut actor =
+                WorkspaceCandidate::new(SpecialistId::Actor, now_ms ^ 0xA17C, 4, Some(action_hint));
             actor.salience = action_confidence;
             actor.confidence = action_confidence;
             actor.novelty = novelty * FixedPoint::from_f32(0.35);
@@ -286,7 +292,8 @@ impl GlobalWorkspace {
         let risk = (prediction_error + (FixedPoint::ONE - energy_level))
             .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         if risk > FixedPoint::from_f32(0.35) {
-            let mut safety = WorkspaceCandidate::new(SpecialistId::Safety, now_ms ^ 0x5AFE, 6, None);
+            let mut safety =
+                WorkspaceCandidate::new(SpecialistId::Safety, now_ms ^ 0x5AFE, 6, None);
             safety.salience = risk;
             safety.confidence = FixedPoint::from_f32(0.85);
             safety.risk = risk;
@@ -297,7 +304,8 @@ impl GlobalWorkspace {
         }
 
         if novelty > FixedPoint::from_f32(0.25) {
-            let mut explorer = WorkspaceCandidate::new(SpecialistId::Sensory, now_ms ^ 0xE970, 1, None);
+            let mut explorer =
+                WorkspaceCandidate::new(SpecialistId::Sensory, now_ms ^ 0xE970, 1, None);
             explorer.salience = novelty;
             explorer.confidence = FixedPoint::from_f32(0.55);
             explorer.novelty = novelty;

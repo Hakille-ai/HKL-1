@@ -54,7 +54,9 @@ impl NeuromodulatedVerbalizer {
         // Determine cognitive mode verbalization
         if state.noradrenaline > FixedPoint::from_f32(0.8) {
             write_str(&mut buf, &mut idx, b"[ALERT/CRISIS] High arousal! ");
-        } else if state.curiosity > FixedPoint::from_f32(0.7) || state.boredom > FixedPoint::from_f32(0.7) {
+        } else if state.curiosity > FixedPoint::from_f32(0.7)
+            || state.boredom > FixedPoint::from_f32(0.7)
+        {
             write_str(&mut buf, &mut idx, b"[EXPLORATION] Seeking novelty. ");
         } else {
             write_str(&mut buf, &mut idx, b"[STABLE] Focused operation. ");

@@ -9,9 +9,7 @@
 #![cfg(test)]
 
 use hkl1::core::crypto::{ChaCha20, const_eq, secure_erase};
-use hkl1::system::persistence::{
-    capture_simulation_snapshot, encrypt_dump, decrypt_dump,
-};
+use hkl1::system::persistence::{capture_simulation_snapshot, decrypt_dump, encrypt_dump};
 
 #[test]
 fn test_chacha20_avalanche_effect() {
@@ -52,8 +50,14 @@ fn test_constant_time_comparison() {
     let match_secret = secret;
     let mismatch_secret = [0xDEu8, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBF]; // 1 bit diff
 
-    assert!(const_eq(&secret, &match_secret), "Matching arrays must return true");
-    assert!(!const_eq(&secret, &mismatch_secret), "Mismatched arrays must return false");
+    assert!(
+        const_eq(&secret, &match_secret),
+        "Matching arrays must return true"
+    );
+    assert!(
+        !const_eq(&secret, &mismatch_secret),
+        "Mismatched arrays must return false"
+    );
 }
 
 #[test]

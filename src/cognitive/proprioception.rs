@@ -96,8 +96,19 @@ impl Proprioception {
             let n = self.body_model_count as usize;
             if n < BODY_MODEL_SLOTS {
                 self.body_model_count = (n + 1) as u16;
+                n
+            } else {
+                let mut worst_idx = 0;
+                let mut max_error = self.body_model[0].last_error;
+                for i in 1..BODY_MODEL_SLOTS {
+                    if self.body_model[i].last_error > max_error {
+                        max_error = self.body_model[i].last_error;
+                        worst_idx = i;
+                    }
+                }
+                self.body_model[worst_idx] = BodyModelEntry::empty();
+                worst_idx
             }
-            if n < BODY_MODEL_SLOTS { n } else { 0 }
         };
 
         let entry = &mut self.body_model[entry_idx];
@@ -174,6 +185,9 @@ impl Proprioception {
         self.correction_active = false;
         self.body_model_count = 0;
         self.correction_cooldown = 0;
+        for i in 0..BODY_MODEL_SLOTS {
+            self.body_model[i] = BodyModelEntry::empty();
+        }
     }
 
     pub fn body_model_accuracy(&self) -> FixedPoint {
@@ -283,5 +297,37 @@ mod tests {
         p.reset();
         assert_eq!(p.body_model_count, 0);
         assert!(!p.correction_active);
+    }
+
+    #[test]
+    fn test_body_model_slot_eviction() {
+        let mut p = Proprioception::new();
+        for i in 0..BODY_MODEL_SLOTS as u8 {
+            p.record_efference(i, FixedPoint::from_f32(1.0));
+            p.record_actual_feedback(i, FixedPoint::from_f32(1.0));
+        }
+        assert_eq!(p.body_model_count, BODY_MODEL_SLOTS as u16);
+
+        p.body_model[10].last_error = FixedPoint::from_f32(5.0);
+
+        p.record_efference(100, FixedPoint::from_f32(1.0));
+        p.record_actual_feedback(100, FixedPoint::from_f32(1.0));
+
+        assert_eq!(p.body_model_count, BODY_MODEL_SLOTS as u16);
+        assert_eq!(p.body_model[10].motor_id, 100);
+    }
+
+    #[test]
+    fn test_reset_clears_body_model_entries() {
+        let mut p = Proprioception::new();
+        p.record_efference(1, FixedPoint::from_f32(1.0));
+        p.record_actual_feedback(1, FixedPoint::from_f32(0.5));
+
+        p.body_model[0].learned_weight = FixedPoint::from_f32(1.5);
+
+        p.reset();
+
+        assert_eq!(p.body_model_count, 0);
+        assert_eq!(p.body_model[0].learned_weight, FixedPoint::from_f32(0.5));
     }
 }

@@ -12,7 +12,6 @@ use hkl1::vision::v1_gabor::GaborBank;
 use hkl1::vision::v4_shape::ShapeEngine;
 use hkl1::vision::visual_engine;
 
-
 #[test]
 fn test_retinal_dog_and_dvs_encoding() {
     let mut retina = RetinalEngine::new(NeuronId::new(0));
@@ -40,7 +39,10 @@ fn test_retinal_dog_and_dvs_encoding() {
     }
 
     retina.process_frame(&frame2, 110);
-    assert!(retina.event_count > 0, "DVS events must be generated on movement!");
+    assert!(
+        retina.event_count > 0,
+        "DVS events must be generated on movement!"
+    );
 }
 
 #[test]
@@ -110,7 +112,10 @@ fn test_mt_motion_and_looming() {
     let g2 = retina.process_frame(&frame2, 110);
     let motion_vec = motion_engine.process_motion(&g2);
 
-    assert!(motion_vec.vx > FixedPoint::ZERO, "Vx must be positive for rightward motion");
+    assert!(
+        motion_vec.vx > FixedPoint::ZERO,
+        "Vx must be positive for rightward motion"
+    );
     assert_eq!(motion_vec.direction, DominantDirection::Right);
 }
 
@@ -162,31 +167,50 @@ fn test_intuitive_physics_engine_gravity_and_occlusion() {
     let pred_pos = obj.extrapolate_trajectory(100);
 
     // Gravity accelerates downward (+Y)
-    assert!(pred_pos.y > initial_pos.y, "Gravity must accelerate object downward (+y)");
+    assert!(
+        pred_pos.y > initial_pos.y,
+        "Gravity must accelerate object downward (+y)"
+    );
     assert!((pred_pos.x - FixedPoint::from_int(1)).abs() < FixedPoint::from_f32(0.01)); // x = 0 + 10 * 0.1s = 1.0 cm
 
-
-
     // Test Object Permanence under Occlusion
-    physics.track_object(0, initial_pos, &hkl1::vision::mt_motion::MotionVector {
-        vx: FixedPoint::from_f32(10.0),
-        vy: FixedPoint::ZERO,
-        vz: FixedPoint::ZERO,
-        magnitude: FixedPoint::from_f32(10.0),
-        direction: DominantDirection::Right,
-    }, true, 10);
+    physics.track_object(
+        0,
+        initial_pos,
+        &hkl1::vision::mt_motion::MotionVector {
+            vx: FixedPoint::from_f32(10.0),
+            vy: FixedPoint::ZERO,
+            vz: FixedPoint::ZERO,
+            magnitude: FixedPoint::from_f32(10.0),
+            direction: DominantDirection::Right,
+        },
+        true,
+        10,
+    );
 
     // Object disappears behind wall (is_visible = false)
-    physics.track_object(0, initial_pos, &hkl1::vision::mt_motion::MotionVector {
-        vx: FixedPoint::from_f32(10.0),
-        vy: FixedPoint::ZERO,
-        vz: FixedPoint::ZERO,
-        magnitude: FixedPoint::from_f32(10.0),
-        direction: DominantDirection::Right,
-    }, false, 50);
+    physics.track_object(
+        0,
+        initial_pos,
+        &hkl1::vision::mt_motion::MotionVector {
+            vx: FixedPoint::from_f32(10.0),
+            vy: FixedPoint::ZERO,
+            vz: FixedPoint::ZERO,
+            magnitude: FixedPoint::from_f32(10.0),
+            direction: DominantDirection::Right,
+        },
+        false,
+        50,
+    );
 
-    assert!(physics.objects[0].is_occluded, "Object must be marked occluded");
-    assert!(physics.objects[0].valid, "Object permanence must keep object valid under occlusion");
+    assert!(
+        physics.objects[0].is_occluded,
+        "Object must be marked occluded"
+    );
+    assert!(
+        physics.objects[0].valid,
+        "Object permanence must keep object valid under occlusion"
+    );
 }
 
 #[test]
@@ -202,8 +226,14 @@ fn test_visual_predictive_coding_and_novelty() {
     assert_eq!(error1, FixedPoint::ZERO);
 
     let error2 = pred_coding.compute_prediction_error(&frame2);
-    assert!(error2 > FixedPoint::ZERO, "Visual prediction error must increase for unexpected frame");
-    assert!(pred_coding.visual_novelty > FixedPoint::ZERO, "Visual novelty derivative must trigger");
+    assert!(
+        error2 > FixedPoint::ZERO,
+        "Visual prediction error must increase for unexpected frame"
+    );
+    assert!(
+        pred_coding.visual_novelty > FixedPoint::ZERO,
+        "Visual novelty derivative must trigger"
+    );
 }
 
 #[test]

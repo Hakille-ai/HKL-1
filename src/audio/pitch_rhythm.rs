@@ -41,7 +41,7 @@ impl PitchRhythmEngine {
     pub fn estimate_pitch_f0(&self, pcm_samples: &[i16]) -> FixedPoint {
         let sample_rate = 16000.0;
         let min_lag = (sample_rate / 400.0) as usize; // Max F0 = 400Hz (lag ~40)
-        let max_lag = (sample_rate / 70.0) as usize;  // Min F0 = 70Hz (lag ~228)
+        let max_lag = (sample_rate / 70.0) as usize; // Min F0 = 70Hz (lag ~228)
 
         let mut best_lag = min_lag;
         let mut max_corr = i64::MIN;

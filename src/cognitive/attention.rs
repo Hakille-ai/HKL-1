@@ -195,7 +195,16 @@ impl AttentionFocus {
     }
 
     pub fn focus_shift_interval(&self) -> u32 {
-        200
+        let na =
+            unsafe { &crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS }.noradrenaline;
+        let interval = (200.0 - na.to_f32() * 150.0) as u32;
+        if interval < 50 {
+            50
+        } else if interval > 400 {
+            400
+        } else {
+            interval
+        }
     }
 }
 
@@ -284,6 +293,11 @@ impl AttentionRouter {
             return;
         }
 
+        let ach =
+            unsafe { &crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS }.acetylcholine;
+        let dynamic_gain = FixedPoint::from_f32(1.0 + (0.2 + ach.to_f32() * 0.3));
+        let dynamic_suppression = FixedPoint::from_f32(0.8 - ach.to_f32() * 0.2);
+
         let count = NEURON_COUNT.load(core::sync::atomic::Ordering::Relaxed);
         for i in 0..count as u16 {
             let id = NeuronId::new(i);
@@ -291,10 +305,39 @@ impl AttentionRouter {
             let layer = state.layer;
             if focus.is_attended(id, layer) {
                 let boost = neuron_state(id);
-                boost.membrane_potential = boost.membrane_potential * focus.gain;
+                boost.membrane_potential = boost.membrane_potential * dynamic_gain;
             } else {
                 let suppress = neuron_state(id);
-                suppress.membrane_potential = suppress.membrane_potential * focus.suppression;
+                suppress.membrane_potential = suppress.membrane_potential * dynamic_suppression;
+            }
+        }
+
+        self.apply_wta_inhibition();
+    }
+
+    pub fn apply_wta_inhibition(&self) {
+        let spread_half = self.focus.spread / 2;
+        let count = NEURON_COUNT.load(core::sync::atomic::Ordering::Relaxed) as u16;
+        if count == 0 {
+            return;
+        }
+        for l in 0..8 {
+            let peak_neuron = self.saliency_map.layers[l].peak_neuron;
+            let low = peak_neuron.saturating_sub(spread_half);
+            let high = peak_neuron
+                .saturating_add(spread_half)
+                .min(count.saturating_sub(1));
+            for idx in low..=high {
+                if idx == peak_neuron {
+                    continue;
+                }
+                unsafe {
+                    let neuron = crate::core::memory::NEURON_ARRAY[idx as usize].assume_init_mut();
+                    if neuron.layer == l as u8 {
+                        neuron.membrane_potential =
+                            neuron.membrane_potential * FixedPoint::from_f32(0.7);
+                    }
+                }
             }
         }
     }
@@ -459,5 +502,62 @@ mod tests {
     fn test_saliency_average_empty() {
         let sm = SaliencyMap::new();
         assert_eq!(sm.average_saliency(), FixedPoint::ZERO);
+    }
+
+    #[test]
+    fn test_wta_lateral_inhibition() {
+        let mut ar = AttentionRouter::new();
+        ar.focus.set_focus(FocusType::BottomUpSalient, 0, 10);
+        ar.saliency_map.layers[0].peak_neuron = 10;
+        unsafe {
+            crate::core::memory::NEURON_COUNT.store(20, core::sync::atomic::Ordering::Relaxed);
+            for i in 0..20 {
+                let mut n = crate::core::memory::NeuronState::default();
+                n.membrane_potential = FixedPoint::from_f32(1.0);
+                crate::core::memory::NEURON_ARRAY[i].write(n);
+            }
+        }
+        ar.apply_wta_inhibition();
+        unsafe {
+            let n10 = crate::core::memory::NEURON_ARRAY[10].assume_init_mut();
+            assert_eq!(n10.membrane_potential, FixedPoint::from_f32(1.0));
+            let n9 = crate::core::memory::NEURON_ARRAY[9].assume_init_mut();
+            assert_eq!(n9.membrane_potential, FixedPoint::from_f32(0.7));
+        }
+    }
+
+    #[test]
+    fn test_dynamic_focus_shift_interval() {
+        let af = AttentionFocus::new();
+        unsafe {
+            crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS.noradrenaline =
+                FixedPoint::from_f32(1.0);
+        }
+        assert_eq!(af.focus_shift_interval(), 50);
+        unsafe {
+            crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS.noradrenaline =
+                FixedPoint::from_f32(0.0);
+        }
+        assert_eq!(af.focus_shift_interval(), 200);
+    }
+
+    #[test]
+    fn test_ach_modulates_gain() {
+        let mut ar = AttentionRouter::new();
+        ar.focus.set_focus(FocusType::GoalDriven, 0, 0);
+        unsafe {
+            crate::core::memory::NEURON_COUNT.store(1, core::sync::atomic::Ordering::Relaxed);
+            let mut n = crate::core::memory::NeuronState::default();
+            n.membrane_potential = FixedPoint::from_f32(1.0);
+            n.layer = 0;
+            crate::core::memory::NEURON_ARRAY[0].write(n);
+            crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS.acetylcholine =
+                FixedPoint::from_f32(1.0);
+        }
+        ar.apply();
+        unsafe {
+            let n0 = crate::core::memory::NEURON_ARRAY[0].assume_init_mut();
+            assert_eq!(n0.membrane_potential, FixedPoint::from_f32(1.5));
+        }
     }
 }

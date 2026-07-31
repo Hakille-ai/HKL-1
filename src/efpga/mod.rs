@@ -7,13 +7,13 @@ pub mod hdl_gen;
 pub mod simulator;
 pub mod stability;
 
-use core::mem::MaybeUninit;
+use crate::core::math::FixedPoint;
+use crate::core::memory::NeuronId;
 pub use bitstream::{BitstreamConfig, BitstreamEncoder};
+use core::mem::MaybeUninit;
 pub use hdl_gen::{HdlGenerator, MAX_VERILOG_BUFFER_LEN};
 pub use simulator::{EfpgaHardwareSimulator, HardwareBenchmark};
 pub use stability::{FrozenSubnetwork, SubnetworkStabilityAnalyzer};
-use crate::core::math::FixedPoint;
-use crate::core::memory::NeuronId;
 
 /// Unified eFPGA Bio-Compilation Engine
 pub struct EfpgaEngine {
@@ -44,7 +44,9 @@ impl EfpgaEngine {
         subnetwork_id: u32,
     ) -> (bool, HardwareBenchmark) {
         // 1. Analyze stability & freeze sub-network
-        let subnetwork = self.stability_analyzer.analyze_and_freeze_subnetwork(synapse_data, subnetwork_id);
+        let subnetwork = self
+            .stability_analyzer
+            .analyze_and_freeze_subnetwork(synapse_data, subnetwork_id);
 
         if subnetwork.count == 0 {
             let empty_bm = HardwareBenchmark {
@@ -58,7 +60,8 @@ impl EfpgaEngine {
         }
 
         // 2. Generate synthesizable Verilog HDL
-        self.verilog_len = HdlGenerator::generate_verilog_hdl(&subnetwork, &mut self.verilog_buffer);
+        self.verilog_len =
+            HdlGenerator::generate_verilog_hdl(&subnetwork, &mut self.verilog_buffer);
 
         // 3. Encode LUT4/LUT6 eFPGA Bitstream
         let bitstream = BitstreamEncoder::encode_bitstream(&subnetwork);
@@ -140,9 +143,14 @@ mod tests {
     #[test]
     fn efpga_stability_analyzer_freeze_stable() {
         let sa = SubnetworkStabilityAnalyzer::new();
-        let data = [
-            (NeuronId::new(1), NeuronId::new(2), FixedPoint::from_f32(0.5), 10, FixedPoint::from_f32(0.001), 200),
-        ];
+        let data = [(
+            NeuronId::new(1),
+            NeuronId::new(2),
+            FixedPoint::from_f32(0.5),
+            10,
+            FixedPoint::from_f32(0.001),
+            200,
+        )];
         let sub = sa.analyze_and_freeze_subnetwork(&data, 1);
         assert_eq!(sub.count, 1);
         assert!(sub.avg_variance > FixedPoint::ZERO);

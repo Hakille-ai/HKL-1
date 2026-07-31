@@ -62,11 +62,16 @@ impl VisualObjectPrototype {
         }
 
         let one_minus_lr = FixedPoint::ONE - lr;
-        self.feature.corner_density = self.feature.corner_density * one_minus_lr + feat.corner_density * lr;
-        self.feature.horizontal_bias = self.feature.horizontal_bias * one_minus_lr + feat.horizontal_bias * lr;
-        self.feature.vertical_bias = self.feature.vertical_bias * one_minus_lr + feat.vertical_bias * lr;
-        self.feature.diagonal_bias = self.feature.diagonal_bias * one_minus_lr + feat.diagonal_bias * lr;
-        self.feature.total_edge_energy = self.feature.total_edge_energy * one_minus_lr + feat.total_edge_energy * lr;
+        self.feature.corner_density =
+            self.feature.corner_density * one_minus_lr + feat.corner_density * lr;
+        self.feature.horizontal_bias =
+            self.feature.horizontal_bias * one_minus_lr + feat.horizontal_bias * lr;
+        self.feature.vertical_bias =
+            self.feature.vertical_bias * one_minus_lr + feat.vertical_bias * lr;
+        self.feature.diagonal_bias =
+            self.feature.diagonal_bias * one_minus_lr + feat.diagonal_bias * lr;
+        self.feature.total_edge_energy =
+            self.feature.total_edge_energy * one_minus_lr + feat.total_edge_energy * lr;
 
         self.count += 1;
         self.confidence = (self.confidence + FixedPoint::from_f32(0.05)).min(FixedPoint::ONE);
@@ -106,7 +111,9 @@ impl ShapeEngine {
                 total_energy += v1.dominant_energy;
 
                 // Corner detection: orthogonal edge overlap (horizontal + vertical active)
-                if v1.responses[0] > FixedPoint::from_f32(0.2) && v1.responses[2] > FixedPoint::from_f32(0.2) {
+                if v1.responses[0] > FixedPoint::from_f32(0.2)
+                    && v1.responses[2] > FixedPoint::from_f32(0.2)
+                {
                     corners += 1;
                 }
             }

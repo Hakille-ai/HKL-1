@@ -140,7 +140,6 @@ impl Network {
         // Update temporal cognition
         crate::cognitive::temporal::temporal_cognition().update();
 
-
         // Update curiosity engine (every 20ms)
         if now % 20 == 0 {
             unsafe {
@@ -154,7 +153,6 @@ impl Network {
             let eps = unsafe { CURIOSITY_ENGINE.explore_epsilon() };
             crate::cognitive::actor::cognitive_actor().epsilon = eps;
         }
-
 
         // Process bio-inspired modules (every step — lightweight)
         self.process_global_workspace(now);
@@ -201,9 +199,21 @@ impl Network {
         // Build sensory input proxy from firing rates
         let sensory_proxy: [FixedPoint; 4] = [
             self.firing_rates[0],
-            if MAX_NEURONS > 1 { self.firing_rates[1] } else { FixedPoint::ZERO },
-            if MAX_NEURONS > 2 { self.firing_rates[2] } else { FixedPoint::ZERO },
-            if MAX_NEURONS > 3 { self.firing_rates[3] } else { FixedPoint::ZERO },
+            if MAX_NEURONS > 1 {
+                self.firing_rates[1]
+            } else {
+                FixedPoint::ZERO
+            },
+            if MAX_NEURONS > 2 {
+                self.firing_rates[2]
+            } else {
+                FixedPoint::ZERO
+            },
+            if MAX_NEURONS > 3 {
+                self.firing_rates[3]
+            } else {
+                FixedPoint::ZERO
+            },
         ];
 
         // 1. Thalamus — sensory gating (every step)
@@ -216,7 +226,11 @@ impl Network {
             let strio_input: [FixedPoint; 64] = {
                 let mut buf = [FixedPoint::ZERO; 64];
                 for (i, b) in buf.iter_mut().enumerate() {
-                    *b = if i < MAX_NEURONS { self.firing_rates[i] } else { FixedPoint::ZERO };
+                    *b = if i < MAX_NEURONS {
+                        self.firing_rates[i]
+                    } else {
+                        FixedPoint::ZERO
+                    };
                 }
                 buf
             };
@@ -231,7 +245,11 @@ impl Network {
             let mut hipp_input: [FixedPoint; 256] = {
                 let mut buf = [FixedPoint::ZERO; 256];
                 for (i, b) in buf.iter_mut().enumerate() {
-                    *b = if i < MAX_NEURONS { self.firing_rates[i] } else { FixedPoint::ZERO };
+                    *b = if i < MAX_NEURONS {
+                        self.firing_rates[i]
+                    } else {
+                        FixedPoint::ZERO
+                    };
                 }
                 buf
             };
@@ -257,7 +275,11 @@ impl Network {
             let astro_input: [FixedPoint; 64] = {
                 let mut buf = [FixedPoint::ZERO; 64];
                 for (i, b) in buf.iter_mut().enumerate() {
-                    *b = if i < MAX_NEURONS { self.firing_rates[i] } else { FixedPoint::ZERO };
+                    *b = if i < MAX_NEURONS {
+                        self.firing_rates[i]
+                    } else {
+                        FixedPoint::ZERO
+                    };
                 }
                 buf
             };
@@ -271,7 +293,11 @@ impl Network {
             let cb_input: [FixedPoint; 10] = {
                 let mut buf = [FixedPoint::ZERO; 10];
                 for (i, b) in buf.iter_mut().enumerate() {
-                    *b = if i < MAX_NEURONS { self.firing_rates[i] } else { FixedPoint::ZERO };
+                    *b = if i < MAX_NEURONS {
+                        self.firing_rates[i]
+                    } else {
+                        FixedPoint::ZERO
+                    };
                 }
                 buf
             };
@@ -286,7 +312,9 @@ impl Network {
     fn process_global_workspace(&mut self, now: u32) {
         let cog_actor = crate::cognitive::actor::cognitive_actor();
         let selected_action = cog_actor.selected_action.or(self.actor.action_selected);
-        let action_confidence = cog_actor.action_confidence.max(self.actor.action_confidence);
+        let action_confidence = cog_actor
+            .action_confidence
+            .max(self.actor.action_confidence);
 
         let frame = crate::cognitive::global_workspace::global_workspace().submit_network_state(
             now,
@@ -326,23 +354,23 @@ impl Network {
                 self.threshold_modulation = FixedPoint::from_f32(1.35);
             }
             crate::cognitive::global_workspace::WorkspaceMode::Guarded => {
-                self.neuromodulators.noradrenaline =
-                    (self.neuromodulators.noradrenaline + FixedPoint::from_f32(0.08))
-                        .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+                self.neuromodulators.noradrenaline = (self.neuromodulators.noradrenaline
+                    + FixedPoint::from_f32(0.08))
+                .clamp(FixedPoint::ZERO, FixedPoint::ONE);
                 self.threshold_modulation = FixedPoint::from_f32(1.15);
             }
             crate::cognitive::global_workspace::WorkspaceMode::Exploring => {
-                self.neuromodulators.acetylcholine =
-                    (self.neuromodulators.acetylcholine + FixedPoint::from_f32(0.08))
-                        .clamp(FixedPoint::ZERO, FixedPoint::ONE);
-                self.neuromodulators.dopamine =
-                    (self.neuromodulators.dopamine + FixedPoint::from_f32(0.04))
-                        .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+                self.neuromodulators.acetylcholine = (self.neuromodulators.acetylcholine
+                    + FixedPoint::from_f32(0.08))
+                .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+                self.neuromodulators.dopamine = (self.neuromodulators.dopamine
+                    + FixedPoint::from_f32(0.04))
+                .clamp(FixedPoint::ZERO, FixedPoint::ONE);
             }
             crate::cognitive::global_workspace::WorkspaceMode::Focused => {
-                self.neuromodulators.serotonin =
-                    (self.neuromodulators.serotonin + FixedPoint::from_f32(0.03))
-                        .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+                self.neuromodulators.serotonin = (self.neuromodulators.serotonin
+                    + FixedPoint::from_f32(0.03))
+                .clamp(FixedPoint::ZERO, FixedPoint::ONE);
             }
             crate::cognitive::global_workspace::WorkspaceMode::Quiescent => {}
         }
@@ -377,7 +405,9 @@ impl Network {
                     self.energy_level,
                 );
                 // Compute TD error
-                unsafe { cog_actor.compute_td_error(&PRED_STATE_BUF, reward); }
+                unsafe {
+                    cog_actor.compute_td_error(&PRED_STATE_BUF, reward);
+                }
 
                 // Modulate dopamine from TD error
                 let td = cog_actor.td_error;
@@ -495,7 +525,6 @@ impl Network {
         }
 
         crate::cognitive::temporal::temporal_cognition().update();
-
 
         if now % 20 == 0 {
             unsafe {
@@ -1145,7 +1174,6 @@ pub fn init_network() {
     }
 }
 
-
 pub fn network() -> &'static mut Network {
     unsafe {
         if !INITIALIZED_NETWORK.load(core::sync::atomic::Ordering::Relaxed) {
@@ -1294,11 +1322,9 @@ mod tests {
 #[cfg(test)]
 mod pipeline_tests {
     use crate::bio::hippocampus::{hippocampus, init_hippocampus};
-    use crate::cognitive::episodic::{init_episodic_memory, EpisodicMemory};
+    use crate::cognitive::episodic::{EpisodicMemory, init_episodic_memory};
     use crate::core::math::FixedPoint;
     use crate::core::memory::NeuronId;
-
-
 
     fn init_all() {
         init_hippocampus();
@@ -1312,7 +1338,9 @@ mod pipeline_tests {
 
         for i in 0..10 {
             epi_local.record(
-                i as u64, 1, (i + 1) as u64,
+                i as u64,
+                1,
+                (i + 1) as u64,
                 FixedPoint::from_f32(0.8),
                 FixedPoint::from_f32(0.1),
                 FixedPoint::from_f32(0.2),
@@ -1329,10 +1357,16 @@ mod pipeline_tests {
         hip_local.consolidation_trigger = true;
 
         assert!(hip_local.swr_active, "SWR must be active");
-        assert!(hip_local.consolidation_trigger, "consolidation_trigger must be set");
+        assert!(
+            hip_local.consolidation_trigger,
+            "consolidation_trigger must be set"
+        );
 
         let count = epi_local.trigger_ripple_replay(100);
-        assert!(count > 0, "Ripple replay must replay at least 1 memory during SWR");
+        assert!(
+            count > 0,
+            "Ripple replay must replay at least 1 memory during SWR"
+        );
     }
 
     #[test]
@@ -1380,7 +1414,12 @@ mod pipeline_tests {
         init_all();
         let thal = crate::bio::thalamus::thalamus();
         let sensory = [FixedPoint::from_f32(0.6); 4];
-        thal.step(&sensory, FixedPoint::from_f32(0.8), FixedPoint::from_f32(0.1), 0);
+        thal.step(
+            &sensory,
+            FixedPoint::from_f32(0.8),
+            FixedPoint::from_f32(0.1),
+            0,
+        );
         assert!(thal.global_gate >= FixedPoint::ZERO);
         assert!(thal.global_gate <= FixedPoint::ONE);
     }
@@ -1400,7 +1439,12 @@ mod pipeline_tests {
         let cb = crate::bio::cerebellum::cerebellum();
         let input = [FixedPoint::from_f32(0.4); 10];
         cb.set_error_signal(FixedPoint::from_f32(0.3), 0);
-        cb.step(&input, FixedPoint::from_f32(0.6), FixedPoint::from_f32(0.3), 100);
+        cb.step(
+            &input,
+            FixedPoint::from_f32(0.6),
+            FixedPoint::from_f32(0.3),
+            100,
+        );
         assert!(cb.motor_output >= FixedPoint::ZERO);
     }
 
@@ -1427,13 +1471,30 @@ mod pipeline_tests {
         let hipp_input = [FixedPoint::from_f32(0.4); 256];
         hip_local.step(&hipp_input, novelty, pred_error);
 
-        astro_local.step_all(&[FixedPoint::from_f32(0.5); 64], 100, FixedPoint::from_f32(0.1));
+        astro_local.step_all(
+            &[FixedPoint::from_f32(0.5); 64],
+            100,
+            FixedPoint::from_f32(0.1),
+        );
         astro_local.propagate_waves();
 
         cb_local.set_error_signal(pred_error, 0);
-        cb_local.step(&[FixedPoint::from_f32(0.4); 10], FixedPoint::from_f32(0.5), pred_error, 100);
+        cb_local.step(
+            &[FixedPoint::from_f32(0.4); 10],
+            FixedPoint::from_f32(0.5),
+            pred_error,
+            100,
+        );
 
-        epi_local.record(42, 1, 43, FixedPoint::from_f32(0.5), pred_error, novelty, 100);
+        epi_local.record(
+            42,
+            1,
+            43,
+            FixedPoint::from_f32(0.5),
+            pred_error,
+            novelty,
+            100,
+        );
         epi_local.consolidate(200);
 
         assert!(hip_local.tick > 0);
@@ -1456,7 +1517,9 @@ mod pipeline_tests {
         // Record baseline experiences for replay
         for i in 0..50 {
             epi.record(
-                i as u64, 1, (i + 1) as u64,
+                i as u64,
+                1,
+                (i + 1) as u64,
                 FixedPoint::from_f32(0.5 + ((i % 10) as f32) * 0.05),
                 FixedPoint::from_f32((i % 5) as f32 * 0.05),
                 FixedPoint::from_f32((i % 3) as f32 * 0.1),
@@ -1515,12 +1578,27 @@ mod pipeline_tests {
 
         assert!(epi.total_recorded > 0, "Episodic recordings must persist");
         assert!(hip.tick > 0, "Hippocampus tick must advance");
-        assert!(thal.global_gate >= FixedPoint::ZERO, "Thalamus gate must be valid");
-        assert!(thal.global_gate <= FixedPoint::ONE, "Thalamus gate must be ≤ 1");
-        assert!(sys.striosomes.len() == 16, "Striosome count must be correct");
+        assert!(
+            thal.global_gate >= FixedPoint::ZERO,
+            "Thalamus gate must be valid"
+        );
+        assert!(
+            thal.global_gate <= FixedPoint::ONE,
+            "Thalamus gate must be ≤ 1"
+        );
+        assert!(
+            sys.striosomes.len() == 16,
+            "Striosome count must be correct"
+        );
         assert!(astro.active_count() <= 64, "Astrocyte count must be ≤ 64");
-        assert!(cb.motor_output >= FixedPoint::ZERO, "Cerebellum output must be valid");
-        assert!(local_recordings == 50, "Must have tracked 50 local recordings");
+        assert!(
+            cb.motor_output >= FixedPoint::ZERO,
+            "Cerebellum output must be valid"
+        );
+        assert!(
+            local_recordings == 50,
+            "Must have tracked 50 local recordings"
+        );
     }
 
     #[test]
@@ -1533,7 +1611,9 @@ mod pipeline_tests {
             let t = cycle as u64 * 1000;
             for i in 0..50 {
                 epi.record(
-                    (cycle * 50 + i) as u64, 1, (cycle * 50 + i + 1) as u64,
+                    (cycle * 50 + i) as u64,
+                    1,
+                    (cycle * 50 + i + 1) as u64,
                     FixedPoint::from_f32(0.3 + ((i % 10) as f32) * 0.07),
                     FixedPoint::from_f32(0.05),
                     FixedPoint::from_f32(0.1),
@@ -1552,8 +1632,14 @@ mod pipeline_tests {
         assert!(util <= FixedPoint::ONE, "Utilization must be ≤ 1.0");
         assert!(st <= 256, "Short-term must not exceed capacity");
         assert!(lt <= 512, "Long-term must not exceed capacity");
-        assert_eq!(epi.total_recorded, 5000, "Must have recorded exactly 5000 experiences");
-        assert!(epi.total_consolidated > 0, "Must have consolidated some memories");
+        assert_eq!(
+            epi.total_recorded, 5000,
+            "Must have recorded exactly 5000 experiences"
+        );
+        assert!(
+            epi.total_consolidated > 0,
+            "Must have consolidated some memories"
+        );
     }
 
     #[test]
@@ -1563,16 +1649,46 @@ mod pipeline_tests {
         assert!(engine.verilog_len == 0, "Verilog buffer must start empty");
 
         let synapse_data = [
-            (NeuronId::new(0), NeuronId::new(1), FixedPoint::from_f32(0.5), 2, FixedPoint::ZERO, 200),
-            (NeuronId::new(1), NeuronId::new(2), FixedPoint::from_f32(0.3), 1, FixedPoint::ZERO, 150),
-            (NeuronId::new(2), NeuronId::new(3), FixedPoint::from_f32(0.7), 3, FixedPoint::ZERO, 180),
+            (
+                NeuronId::new(0),
+                NeuronId::new(1),
+                FixedPoint::from_f32(0.5),
+                2,
+                FixedPoint::ZERO,
+                200,
+            ),
+            (
+                NeuronId::new(1),
+                NeuronId::new(2),
+                FixedPoint::from_f32(0.3),
+                1,
+                FixedPoint::ZERO,
+                150,
+            ),
+            (
+                NeuronId::new(2),
+                NeuronId::new(3),
+                FixedPoint::from_f32(0.7),
+                3,
+                FixedPoint::ZERO,
+                180,
+            ),
         ];
 
         let (success, benchmark) = engine.compile_and_accelerate_subnetwork(&synapse_data, 1);
-        assert!(success, "eFPGA compilation must succeed for stable synapses");
-        assert!(benchmark.speedup_vs_software > 1.0, "Hardware must be faster than software");
+        assert!(
+            success,
+            "eFPGA compilation must succeed for stable synapses"
+        );
+        assert!(
+            benchmark.speedup_vs_software > 1.0,
+            "Hardware must be faster than software"
+        );
         assert!(engine.verilog_len > 0, "Verilog buffer must be populated");
-        assert!(engine.last_bitstream.is_some(), "Bitstream must be generated");
+        assert!(
+            engine.last_bitstream.is_some(),
+            "Bitstream must be generated"
+        );
     }
 
     #[test]
@@ -1580,9 +1696,14 @@ mod pipeline_tests {
         crate::efpga::init_efpga_engine();
         let engine = crate::efpga::efpga_engine();
 
-        let unstable_data = [
-            (NeuronId::new(0), NeuronId::new(1), FixedPoint::from_f32(0.5), 2, FixedPoint::from_f32(0.5), 5),
-        ];
+        let unstable_data = [(
+            NeuronId::new(0),
+            NeuronId::new(1),
+            FixedPoint::from_f32(0.5),
+            2,
+            FixedPoint::from_f32(0.5),
+            5,
+        )];
 
         let (success, _) = engine.compile_and_accelerate_subnetwork(&unstable_data, 0);
         assert!(!success, "Unstable subnetwork must be rejected");

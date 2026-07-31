@@ -7,13 +7,12 @@ pub mod cochlea;
 pub mod pitch_rhythm;
 pub mod voice_synth;
 
-use core::mem::MaybeUninit;
+use crate::core::memory::NeuronId;
 use a1_formants::{FormantExtractor, FormantProfile};
 use cochlea::{BandResponse, CochleaEngine, NUM_COCHLEAR_BANDS};
+use core::mem::MaybeUninit;
 use pitch_rhythm::{PitchRhythmEngine, PitchRhythmProfile};
 use voice_synth::SpikeVoiceSynthesizer;
-use crate::core::memory::NeuronId;
-
 
 /// Unified Auditory & Speech Intelligence Engine
 pub struct AudioEngine {
@@ -133,7 +132,11 @@ mod tests {
 
     #[test]
     fn audio_formant_extractor_default() {
-        let band = BandResponse { frequency_hz: FixedPoint::ZERO, energy: FixedPoint::ZERO, hair_cell_activation: FixedPoint::ZERO };
+        let band = BandResponse {
+            frequency_hz: FixedPoint::ZERO,
+            energy: FixedPoint::ZERO,
+            hair_cell_activation: FixedPoint::ZERO,
+        };
         let bands = [band; NUM_COCHLEAR_BANDS];
         let pf = FormantExtractor::extract_formants(&bands);
         assert!(pf.f1_hz >= FixedPoint::ZERO);
@@ -142,7 +145,11 @@ mod tests {
     #[test]
     fn audio_voice_synth_default() {
         let mut vs = SpikeVoiceSynthesizer::new();
-        let pcm = vs.synthesize_waveform(FixedPoint::from_f32(200.0), FixedPoint::from_f32(500.0), FixedPoint::from_f32(1500.0));
+        let pcm = vs.synthesize_waveform(
+            FixedPoint::from_f32(200.0),
+            FixedPoint::from_f32(500.0),
+            FixedPoint::from_f32(1500.0),
+        );
         assert!(!pcm.is_empty());
     }
 }

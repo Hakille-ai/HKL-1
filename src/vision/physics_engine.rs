@@ -60,7 +60,8 @@ impl PhysicalObject {
 
         let pred_x = self.position.x + self.velocity.x * dt_sec;
         // Gravity accelerates objects downwards (+y direction) in cm/s^2
-        let pred_y = self.position.y + self.velocity.y * dt_sec + FixedPoint::from_f32(981.0) * dt_sq_half;
+        let pred_y =
+            self.position.y + self.velocity.y * dt_sec + FixedPoint::from_f32(981.0) * dt_sq_half;
         let pred_z = self.position.z + self.velocity.z * dt_sec;
 
         SpatialPoint3D {
@@ -70,9 +71,12 @@ impl PhysicalObject {
         }
     }
 
-
     /// Check if object trajectory intersects with agent spatial boundary (collision check)
-    pub fn check_collision(&self, agent_pos: &SpatialPoint3D, collision_radius: FixedPoint) -> bool {
+    pub fn check_collision(
+        &self,
+        agent_pos: &SpatialPoint3D,
+        collision_radius: FixedPoint,
+    ) -> bool {
         let dx = self.predicted_position.x - agent_pos.x;
         let dy = self.predicted_position.y - agent_pos.y;
         let dz = self.predicted_position.z - agent_pos.z;

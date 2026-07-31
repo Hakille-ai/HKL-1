@@ -116,7 +116,8 @@ impl Hippocampus {
         self.tick += 1;
         let theta_frac = FixedPoint::from_int((self.tick % THETA_CYCLES) as i32)
             / FixedPoint::from_int(THETA_CYCLES as i32);
-        self.theta_phase = (theta_frac * FixedPoint::TAU).sin() * FixedPoint::HALF + FixedPoint::HALF;
+        self.theta_phase =
+            (theta_frac * FixedPoint::TAU).sin() * FixedPoint::HALF + FixedPoint::HALF;
         self.dg_processing(sensory_input);
         self.ca3_recurrent(novelty);
         self.ca1_output(reward);
@@ -127,7 +128,11 @@ impl Hippocampus {
     fn dg_processing(&mut self, input: &[FixedPoint]) {
         for cell in self.dg.iter_mut().enumerate() {
             let (i, cell) = (cell.0, cell.1);
-            let inp = if i < input.len() { input[i] } else { FixedPoint::ZERO };
+            let inp = if i < input.len() {
+                input[i]
+            } else {
+                FixedPoint::ZERO
+            };
             let mut separated = inp;
             let hash_phase = ((i as u64 * 2654435761u64) % 1000) as f32 / 1000.0;
             separated *= FixedPoint::from_f32(1.0 - hash_phase * 0.3);
@@ -136,7 +141,8 @@ impl Hippocampus {
             cell.winning = false;
         }
         const K_WTA: usize = 16;
-        let mut activations: [(FixedPoint, usize); DG_NEURONS] = [(FixedPoint::ZERO, 0); DG_NEURONS];
+        let mut activations: [(FixedPoint, usize); DG_NEURONS] =
+            [(FixedPoint::ZERO, 0); DG_NEURONS];
         for (i, cell) in self.dg.iter().enumerate() {
             activations[i] = (cell.activity, i);
         }
@@ -156,7 +162,8 @@ impl Hippocampus {
             let mut input_sum = FixedPoint::ZERO;
             let dg_idx = (i * (DG_NEURONS / CA3_NEURONS)) % DG_NEURONS;
             if self.dg[dg_idx].winning {
-                let mf_idx = (i * (DG_NEURONS * CA3_NEURONS / 256) / CA3_NEURONS) % self.mossy.len();
+                let mf_idx =
+                    (i * (DG_NEURONS * CA3_NEURONS / 256) / CA3_NEURONS) % self.mossy.len();
                 input_sum += self.mossy[mf_idx].weight * self.dg[dg_idx].activity;
             }
             for (j, cell) in self.ca3.iter().enumerate() {
@@ -186,7 +193,8 @@ impl Hippocampus {
                 for j in 0..self.ca3.len() {
                     if i != j && self.ca3[i].active && self.ca3[j].active {
                         let sc_idx = (i * CA3_NEURONS + j) % self.schaffer.len();
-                        self.schaffer[sc_idx].weight = (self.schaffer[sc_idx].weight + LTP_RATE * novelty)
+                        self.schaffer[sc_idx].weight = (self.schaffer[sc_idx].weight
+                            + LTP_RATE * novelty)
                             .clamp(FixedPoint::ZERO, FixedPoint::ONE);
                     }
                 }
@@ -207,15 +215,18 @@ impl Hippocampus {
             cell.active = cell.activity > FixedPoint::from_bits(6554);
             if cell.active && reward > FixedPoint::ZERO {
                 let delta = LTP_RATE * reward * cell.activity;
-                self.schaffer[sc_idx].weight = (self.schaffer[sc_idx].weight + delta)
-                    .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+                self.schaffer[sc_idx].weight =
+                    (self.schaffer[sc_idx].weight + delta).clamp(FixedPoint::ZERO, FixedPoint::ONE);
             }
         }
     }
 
     fn swr_check(&mut self) {
         let ca3_active = self.ca3.iter().filter(|c| c.active).count();
-        if ca3_active > CA3_NEURONS / 4 && self.theta_phase > FixedPoint::from_bits(16384) && !self.swr_active {
+        if ca3_active > CA3_NEURONS / 4
+            && self.theta_phase > FixedPoint::from_bits(16384)
+            && !self.swr_active
+        {
             self.swr_active = true;
             self.swr_timer = 0;
             self.consolidation_trigger = true;
@@ -224,7 +235,8 @@ impl Hippocampus {
             self.swr_timer += 1;
             let swr_frac = FixedPoint::from_int((self.swr_timer % SWR_DURATION) as i32)
                 / FixedPoint::from_int(SWR_DURATION as i32);
-            let sharp_wave = (swr_frac * FixedPoint::TAU).sin() * FixedPoint::HALF + FixedPoint::HALF;
+            let sharp_wave =
+                (swr_frac * FixedPoint::TAU).sin() * FixedPoint::HALF + FixedPoint::HALF;
             for cell in self.ca3.iter_mut() {
                 if cell.active && cell.trace > FixedPoint::from_bits(6554) {
                     cell.activity = (cell.activity + sharp_wave * FixedPoint::from_bits(3277))
@@ -245,7 +257,11 @@ impl Hippocampus {
         let dg_acts: [FixedPoint; DG_NEURONS] = {
             let mut d = [FixedPoint::ZERO; DG_NEURONS];
             for (i, cell) in self.dg.iter().enumerate() {
-                let inp = if i < cue.len() { cue[i] } else { FixedPoint::ZERO };
+                let inp = if i < cue.len() {
+                    cue[i]
+                } else {
+                    FixedPoint::ZERO
+                };
                 d[i] = if cell.pattern_separated {
                     FixedPoint::ZERO
                 } else {

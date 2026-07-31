@@ -378,9 +378,8 @@ impl MeshNetwork {
         for i in 0..self.route_count as usize {
             if self.routes[i].destination == *node_id {
                 self.routes[i].rssi_avg = (self.routes[i].rssi_avg as i16 + rssi as i16 / 2) as i8;
-                self.routes[i].last_validated = unsafe {
-                    crate::core::time::METABOLIC_CLOCK.now_us() as u32
-                };
+                self.routes[i].last_validated =
+                    unsafe { crate::core::time::METABOLIC_CLOCK.now_us() as u32 };
                 break;
             }
         }
@@ -532,9 +531,7 @@ impl MeshNetwork {
                         let rssi = self.connected_nodes[j].rssi;
                         match best_alt {
                             None => best_alt = Some((rssi, j)),
-                            Some((best_rssi, _)) if rssi > best_rssi => {
-                                best_alt = Some((rssi, j))
-                            }
+                            Some((best_rssi, _)) if rssi > best_rssi => best_alt = Some((rssi, j)),
                             _ => {}
                         }
                     }
@@ -591,7 +588,9 @@ impl MeshNetwork {
 
     pub fn cast_vote(&mut self, proposal_id: u32, vote_for: bool) -> bool {
         for i in 0..self.proposal_count as usize {
-            if self.active_proposals[i].proposal_id == proposal_id && !self.active_proposals[i].finalised {
+            if self.active_proposals[i].proposal_id == proposal_id
+                && !self.active_proposals[i].finalised
+            {
                 if vote_for {
                     self.active_proposals[i].votes_for += 1;
                 } else {
@@ -610,9 +609,8 @@ impl MeshNetwork {
                 let total = p.votes_for + p.votes_against;
                 if total >= 3 && p.votes_for > p.votes_against {
                     p.result = p.value;
-                    self.collective_agreement = FixedPoint::from_f32(
-                        p.votes_for as f32 / total as f32,
-                    );
+                    self.collective_agreement =
+                        FixedPoint::from_f32(p.votes_for as f32 / total as f32);
                 } else {
                     p.result = 0;
                 }
@@ -699,12 +697,7 @@ impl MeshNetwork {
         if pattern == 0 {
             return None;
         }
-        let pid = self.propose_consensus(
-            1,
-            pattern as i16,
-            CONSENSUS_TIMEOUT,
-            now,
-        );
+        let pid = self.propose_consensus(1, pattern as i16, CONSENSUS_TIMEOUT, now);
         if pid != 0 {
             self.cast_vote(pid, true);
         }
@@ -771,7 +764,13 @@ impl MeshNetwork {
             let peer_time = u32::from_le_bytes(msg.payload[0..4].try_into().unwrap_or([0; 4]));
             let estimated_offset = peer_time as i32 - now as i32;
             self.connected_nodes[i].clock_offset = estimated_offset;
-            self.add_route(msg.sender_id, msg.sender_id, 1, self.connected_nodes[i].rssi, now);
+            self.add_route(
+                msg.sender_id,
+                msg.sender_id,
+                1,
+                self.connected_nodes[i].rssi,
+                now,
+            );
         } else {
             let mut info = NodeInfo::empty();
             info.id = msg.sender_id;
@@ -1051,7 +1050,11 @@ mod tests {
     fn test_remove_node() {
         let mut m = MeshNetwork::new();
         let id = [1; 8];
-        let info = NodeInfo { id, is_connected: true, ..NodeInfo::empty() };
+        let info = NodeInfo {
+            id,
+            is_connected: true,
+            ..NodeInfo::empty()
+        };
         m.add_node(info);
         assert!(m.remove_node(&id));
         assert!(!m.connected_nodes[0].is_connected);
@@ -1076,7 +1079,12 @@ mod tests {
         let hop = [4; 8];
         let alt = [6; 8];
         m.add_route(dest, hop, 1, -50, 100);
-        let info = NodeInfo { id: alt, is_connected: true, rssi: -40, ..NodeInfo::empty() };
+        let info = NodeInfo {
+            id: alt,
+            is_connected: true,
+            rssi: -40,
+            ..NodeInfo::empty()
+        };
         m.add_node(info);
         assert!(m.route_failover(&hop));
         let route = m.find_route(&dest);
@@ -1088,7 +1096,12 @@ mod tests {
     fn test_mark_node_failed_and_reconnect() {
         let mut m = MeshNetwork::new();
         let id = [7; 8];
-        let info = NodeInfo { id, is_connected: true, last_seen: 100, ..NodeInfo::empty() };
+        let info = NodeInfo {
+            id,
+            is_connected: true,
+            last_seen: 100,
+            ..NodeInfo::empty()
+        };
         m.add_node(info);
         m.mark_node_failed(&id, 500);
         assert!(!m.connected_nodes[0].is_connected);

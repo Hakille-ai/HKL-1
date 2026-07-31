@@ -137,8 +137,10 @@ impl SymbolicKnowledgeGraph {
         for i in 0..MAX_TRIPLES {
             if self.triples[i].valid && self.triples[i].subject_id == concept_id {
                 let target_obj = self.triples[i].object_id as usize;
-                let spread = initial_activation * self.triples[i].weight * FixedPoint::from_f32(0.7);
-                self.concepts[target_obj].activation = (self.concepts[target_obj].activation + spread).min(FixedPoint::ONE);
+                let spread =
+                    initial_activation * self.triples[i].weight * FixedPoint::from_f32(0.7);
+                self.concepts[target_obj].activation =
+                    (self.concepts[target_obj].activation + spread).min(FixedPoint::ONE);
             }
         }
     }

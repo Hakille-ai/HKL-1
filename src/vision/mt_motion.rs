@@ -69,10 +69,14 @@ impl MotionEngine {
                 let up_prev = self.prev_retina_frame[(y - 1) * VISION_WIDTH + x];
                 let down_prev = self.prev_retina_frame[(y + 1) * VISION_WIDTH + x];
 
-                let emd_right = c_now * left_prev - curr_frame[y * VISION_WIDTH + (x - 1)] * self.prev_retina_frame[idx];
-                let emd_left = c_now * right_prev - curr_frame[y * VISION_WIDTH + (x + 1)] * self.prev_retina_frame[idx];
-                let emd_down = c_now * up_prev - curr_frame[(y - 1) * VISION_WIDTH + x] * self.prev_retina_frame[idx];
-                let emd_up = c_now * down_prev - curr_frame[(y + 1) * VISION_WIDTH + x] * self.prev_retina_frame[idx];
+                let emd_right = c_now * left_prev
+                    - curr_frame[y * VISION_WIDTH + (x - 1)] * self.prev_retina_frame[idx];
+                let emd_left = c_now * right_prev
+                    - curr_frame[y * VISION_WIDTH + (x + 1)] * self.prev_retina_frame[idx];
+                let emd_down = c_now * up_prev
+                    - curr_frame[(y - 1) * VISION_WIDTH + x] * self.prev_retina_frame[idx];
+                let emd_up = c_now * down_prev
+                    - curr_frame[(y + 1) * VISION_WIDTH + x] * self.prev_retina_frame[idx];
 
                 let vx_local = emd_right - emd_left;
                 let vy_local = emd_down - emd_up;

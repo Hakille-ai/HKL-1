@@ -42,7 +42,6 @@ impl BitstreamEncoder {
                 let tgt = (syn.target_id.index() & 0xFF) as u8;
                 let w_raw = syn.weight.0;
 
-
                 config.data[offset] = src;
                 config.data[offset + 1] = tgt;
                 config.data[offset + 2] = (w_raw & 0xFF) as u8;

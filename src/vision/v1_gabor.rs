@@ -11,35 +11,155 @@ pub const GABOR_ORIENTATIONS: usize = 4; // 0° (Horiz), 45° (Diag Asc), 90° (
 pub const GABOR_KERNELS_5X5: [[[FixedPoint; 5]; 5]; GABOR_ORIENTATIONS] = [
     // 0° — Horizontal Edges
     [
-        [FixedPoint(-6554), FixedPoint(-13107), FixedPoint(-19661), FixedPoint(-13107), FixedPoint(-6554)],
-        [FixedPoint(     0), FixedPoint(      0), FixedPoint(      0), FixedPoint(      0), FixedPoint(     0)],
-        [FixedPoint( 13107), FixedPoint( 26214), FixedPoint( 39322), FixedPoint( 26214), FixedPoint( 13107)],
-        [FixedPoint(     0), FixedPoint(      0), FixedPoint(      0), FixedPoint(      0), FixedPoint(     0)],
-        [FixedPoint(-6554), FixedPoint(-13107), FixedPoint(-19661), FixedPoint(-13107), FixedPoint(-6554)],
+        [
+            FixedPoint(-6554),
+            FixedPoint(-13107),
+            FixedPoint(-19661),
+            FixedPoint(-13107),
+            FixedPoint(-6554),
+        ],
+        [
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+        ],
+        [
+            FixedPoint(13107),
+            FixedPoint(26214),
+            FixedPoint(39322),
+            FixedPoint(26214),
+            FixedPoint(13107),
+        ],
+        [
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+            FixedPoint(0),
+        ],
+        [
+            FixedPoint(-6554),
+            FixedPoint(-13107),
+            FixedPoint(-19661),
+            FixedPoint(-13107),
+            FixedPoint(-6554),
+        ],
     ],
     // 45° — Diagonal Ascending Edges
     [
-        [FixedPoint(-19661), FixedPoint(-13107), FixedPoint(     0), FixedPoint( 13107), FixedPoint( 39322)],
-        [FixedPoint(-13107), FixedPoint(     0), FixedPoint( 26214), FixedPoint( 39322), FixedPoint( 13107)],
-        [FixedPoint(     0), FixedPoint( 26214), FixedPoint( 39322), FixedPoint( 26214), FixedPoint(     0)],
-        [FixedPoint( 13107), FixedPoint( 39322), FixedPoint( 26214), FixedPoint(     0), FixedPoint(-13107)],
-        [FixedPoint( 39322), FixedPoint( 13107), FixedPoint(     0), FixedPoint(-13107), FixedPoint(-19661)],
+        [
+            FixedPoint(-19661),
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(13107),
+            FixedPoint(39322),
+        ],
+        [
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(39322),
+            FixedPoint(13107),
+        ],
+        [
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(39322),
+            FixedPoint(26214),
+            FixedPoint(0),
+        ],
+        [
+            FixedPoint(13107),
+            FixedPoint(39322),
+            FixedPoint(26214),
+            FixedPoint(0),
+            FixedPoint(-13107),
+        ],
+        [
+            FixedPoint(39322),
+            FixedPoint(13107),
+            FixedPoint(0),
+            FixedPoint(-13107),
+            FixedPoint(-19661),
+        ],
     ],
     // 90° — Vertical Edges
     [
-        [FixedPoint(-6554), FixedPoint(    0), FixedPoint( 13107), FixedPoint(    0), FixedPoint(-6554)],
-        [FixedPoint(-13107), FixedPoint(   0), FixedPoint( 26214), FixedPoint(   0), FixedPoint(-13107)],
-        [FixedPoint(-19661), FixedPoint(   0), FixedPoint( 39322), FixedPoint(   0), FixedPoint(-19661)],
-        [FixedPoint(-13107), FixedPoint(   0), FixedPoint( 26214), FixedPoint(   0), FixedPoint(-13107)],
-        [FixedPoint(-6554), FixedPoint(    0), FixedPoint( 13107), FixedPoint(    0), FixedPoint(-6554)],
+        [
+            FixedPoint(-6554),
+            FixedPoint(0),
+            FixedPoint(13107),
+            FixedPoint(0),
+            FixedPoint(-6554),
+        ],
+        [
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(0),
+            FixedPoint(-13107),
+        ],
+        [
+            FixedPoint(-19661),
+            FixedPoint(0),
+            FixedPoint(39322),
+            FixedPoint(0),
+            FixedPoint(-19661),
+        ],
+        [
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(0),
+            FixedPoint(-13107),
+        ],
+        [
+            FixedPoint(-6554),
+            FixedPoint(0),
+            FixedPoint(13107),
+            FixedPoint(0),
+            FixedPoint(-6554),
+        ],
     ],
     // 135° — Diagonal Descending Edges
     [
-        [FixedPoint( 39322), FixedPoint( 13107), FixedPoint(     0), FixedPoint(-13107), FixedPoint(-19661)],
-        [FixedPoint( 13107), FixedPoint( 39322), FixedPoint( 26214), FixedPoint(     0), FixedPoint(-13107)],
-        [FixedPoint(     0), FixedPoint( 26214), FixedPoint( 39322), FixedPoint( 26214), FixedPoint(     0)],
-        [FixedPoint(-13107), FixedPoint(     0), FixedPoint( 26214), FixedPoint( 39322), FixedPoint( 13107)],
-        [FixedPoint(-19661), FixedPoint(-13107), FixedPoint(     0), FixedPoint( 13107), FixedPoint( 39322)],
+        [
+            FixedPoint(39322),
+            FixedPoint(13107),
+            FixedPoint(0),
+            FixedPoint(-13107),
+            FixedPoint(-19661),
+        ],
+        [
+            FixedPoint(13107),
+            FixedPoint(39322),
+            FixedPoint(26214),
+            FixedPoint(0),
+            FixedPoint(-13107),
+        ],
+        [
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(39322),
+            FixedPoint(26214),
+            FixedPoint(0),
+        ],
+        [
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(26214),
+            FixedPoint(39322),
+            FixedPoint(13107),
+        ],
+        [
+            FixedPoint(-19661),
+            FixedPoint(-13107),
+            FixedPoint(0),
+            FixedPoint(13107),
+            FixedPoint(39322),
+        ],
     ],
 ];
 
@@ -81,7 +201,8 @@ impl GaborBank {
                             let py = (y + ky).saturating_sub(2).min(VISION_HEIGHT - 1);
                             let pidx = py * VISION_WIDTH + px;
                             // Combined ON + OFF retinal contrast
-                            let contrast = retina_output[pidx].on_response + retina_output[pidx].off_response;
+                            let contrast =
+                                retina_output[pidx].on_response + retina_output[pidx].off_response;
                             sum += contrast * kernel[ky][kx];
                         }
                     }

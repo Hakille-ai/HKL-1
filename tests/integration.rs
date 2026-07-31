@@ -142,7 +142,6 @@ fn test_predictor_uses_prototypes() {
     assert!(pred.mean_error < FixedPoint::from_f32(0.5));
 }
 
-
 #[allow(static_mut_refs)]
 #[test]
 fn test_temporal_predict_next_action() {
@@ -182,7 +181,9 @@ fn test_network_cognitive_full_cycle() {
     // Sync cognitive → SNN neuromodulators
     hkl1::cognitive::neuromodulation::sync_to_snn();
     unsafe {
-        let snn_dopa = (*hkl1::snn::neuron::GLOBAL_NEUROMODULATORS.as_ptr()).dopamine.to_f32();
+        let snn_dopa = (*hkl1::snn::neuron::GLOBAL_NEUROMODULATORS.as_ptr())
+            .dopamine
+            .to_f32();
         assert!(snn_dopa >= 0.0);
     }
 
@@ -232,8 +233,7 @@ fn endurance_million_cycles() {
 #[test]
 fn test_endurance_plasticity_100k() {
     use hkl1::snn::plasticity::{
-        CALCIUM_MODELS, PLASTICITY_CTRL, ELIGIBILITY_TRACES,
-        CalciumModel, PlasticityController,
+        CALCIUM_MODELS, CalciumModel, ELIGIBILITY_TRACES, PLASTICITY_CTRL, PlasticityController,
     };
 
     const ITERS: u32 = 100_000;
@@ -265,7 +265,10 @@ fn test_endurance_plasticity_100k() {
             if i % 5000 == 0 {
                 let nm = hkl1::snn::neuron::neuromodulators();
                 hkl1::snn::plasticity::modulate_rates(
-                    nm.noradrenaline, nm.serotonin, nm.dopamine, nm.acetylcholine,
+                    nm.noradrenaline,
+                    nm.serotonin,
+                    nm.dopamine,
+                    nm.acetylcholine,
                 );
             }
 

@@ -380,7 +380,6 @@ pub static mut COGNITIVE_PREDICTOR: MaybeUninit<Predictor> = MaybeUninit::uninit
 static INITIALIZED_COGNITIVE_PREDICTOR: core::sync::atomic::AtomicBool =
     core::sync::atomic::AtomicBool::new(false);
 
-
 pub fn init_cognitive_predictor() {
     unsafe {
         COGNITIVE_PREDICTOR.write(Predictor::new());
@@ -396,7 +395,6 @@ pub fn cognitive_predictor() -> &'static mut Predictor {
         &mut *COGNITIVE_PREDICTOR.as_mut_ptr()
     }
 }
-
 
 // ---------------------------------------------------------------------------
 // Tests

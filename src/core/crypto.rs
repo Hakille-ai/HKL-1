@@ -4,7 +4,6 @@
 
 use core::sync::atomic::{AtomicU32, Ordering};
 
-
 /// ChaCha20 stream cipher - lightweight, from scratch
 /// Used for encrypting binary dumps to Flash
 pub struct ChaCha20 {

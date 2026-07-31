@@ -47,7 +47,8 @@ impl SpikeVoiceSynthesizer {
             let dt_fp = FixedPoint::ONE / FixedPoint::from_f32(self.sample_rate_hz);
             let t = FixedPoint::from_int(n as i32) * dt_fp;
             let r1 = (FixedPoint::TAU * FixedPoint::from_f32(f1) * t).sin();
-            let r2 = (FixedPoint::TAU * FixedPoint::from_f32(f2) * t).sin() * FixedPoint::from_f32(0.5);
+            let r2 =
+                (FixedPoint::TAU * FixedPoint::from_f32(f2) * t).sin() * FixedPoint::from_f32(0.5);
 
             let acoustic_val = glottal_pulse * (r1.to_f32() + r2.to_f32());
             let pcm_val = (acoustic_val * 16384.0).clamp(-32768.0, 32767.0) as i16;

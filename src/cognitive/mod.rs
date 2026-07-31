@@ -16,10 +16,11 @@ pub mod temporal;
 
 #[cfg(feature = "std")]
 use alloc::boxed::Box;
-use core::mem::MaybeUninit;
 pub use continual::ContinualLearningEngine;
+use core::mem::MaybeUninit;
 
-pub static mut CONTINUAL_LEARNING_ENGINE: MaybeUninit<ContinualLearningEngine> = MaybeUninit::uninit();
+pub static mut CONTINUAL_LEARNING_ENGINE: MaybeUninit<ContinualLearningEngine> =
+    MaybeUninit::uninit();
 
 static INITIALIZED_CONTINUAL_LEARNING: core::sync::atomic::AtomicBool =
     core::sync::atomic::AtomicBool::new(false);
@@ -31,7 +32,11 @@ pub fn init_continual_learning() {
             {
                 let boxed = Box::new(ContinualLearningEngine::new());
                 let ptr = Box::into_raw(boxed);
-                core::ptr::copy_nonoverlapping(ptr as *const MaybeUninit<ContinualLearningEngine>, &raw mut CONTINUAL_LEARNING_ENGINE, 1);
+                core::ptr::copy_nonoverlapping(
+                    ptr as *const MaybeUninit<ContinualLearningEngine>,
+                    &raw mut CONTINUAL_LEARNING_ENGINE,
+                    1,
+                );
             }
             #[cfg(not(feature = "std"))]
             {

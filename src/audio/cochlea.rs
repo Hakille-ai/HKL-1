@@ -4,16 +4,15 @@
 
 use crate::core::math::FixedPoint;
 use crate::core::memory::NeuronId;
-use crate::io::buffers::{ingest_spike, EncodedSpike, Modality};
+use crate::io::buffers::{EncodedSpike, Modality, ingest_spike};
 
 pub const NUM_COCHLEAR_BANDS: usize = 32;
 
 /// Fixed-point ERB Gammatone Filter Bank Center Frequencies (80 Hz to 8000 Hz)
 pub const ERB_CENTER_FREQS_HZ: [f32; NUM_COCHLEAR_BANDS] = [
-    80.0, 105.0, 135.0, 170.0, 215.0, 270.0, 340.0, 425.0,
-    530.0, 660.0, 825.0, 1030.0, 1285.0, 1600.0, 1990.0, 2475.0,
-    3080.0, 3835.0, 4775.0, 5945.0, 7400.0, 8000.0, 8500.0, 9000.0,
-    9500.0, 10000.0, 10500.0, 11000.0, 11500.0, 12000.0, 12500.0, 13000.0,
+    80.0, 105.0, 135.0, 170.0, 215.0, 270.0, 340.0, 425.0, 530.0, 660.0, 825.0, 1030.0, 1285.0,
+    1600.0, 1990.0, 2475.0, 3080.0, 3835.0, 4775.0, 5945.0, 7400.0, 8000.0, 8500.0, 9000.0, 9500.0,
+    10000.0, 10500.0, 11000.0, 11500.0, 12000.0, 12500.0, 13000.0,
 ];
 
 /// Gammatone Band Response

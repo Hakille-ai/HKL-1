@@ -130,7 +130,6 @@ impl AudioEncoder {
     }
 }
 
-
 /// Temporal encoder for event-based vision (Section 4)
 pub struct VisionEncoder {
     pub base_neuron_id: NeuronId,
@@ -152,12 +151,12 @@ impl VisionEncoder {
     /// Process pixel array - run Retinal DoG, DVS event generation, Gabor V1, Motion MT, 3D Physics & Visual Predictive Coding
     pub fn process_pixels(&mut self, pixels: &[u8; 1024], timestamp: u32) {
         let engine = crate::vision::visual_engine();
-        let (_ganglion, _v1, _motion, _pred_err) = engine.process_visual_scene(pixels, timestamp, 10);
+        let (_ganglion, _v1, _motion, _pred_err) =
+            engine.process_visual_scene(pixels, timestamp, 10);
         self.event_count = engine.retina.event_count as u16;
         self.prev_frame = *pixels;
     }
 }
-
 
 /// Industrial sensor encoder - converts analog readings to PFM (Section 4)
 pub struct SensorEncoder {

@@ -52,7 +52,9 @@ impl Astrocyte {
         } else {
             self.gliotransmitter_level *= FixedPoint::ONE - FixedPoint::from_bits(1311) * dt;
         }
-        self.gliotransmitter_level = self.gliotransmitter_level.clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.gliotransmitter_level = self
+            .gliotransmitter_level
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         self.wave_phase += WAVE_SPEED * dt;
         if self.wave_phase > FixedPoint::ONE {
             self.wave_phase -= FixedPoint::ONE;
@@ -104,7 +106,9 @@ impl AstrocyteNetwork {
     pub fn propagate_waves(&mut self) {
         let mut new_calcium = [FixedPoint::ZERO; ASTROCYTES];
         for (i, cell) in self.cells.iter().enumerate() {
-            if i >= ASTROCYTES { break; }
+            if i >= ASTROCYTES {
+                break;
+            }
             if cell.active {
                 let row = i / GRID_COLS;
                 let col = i % GRID_COLS;

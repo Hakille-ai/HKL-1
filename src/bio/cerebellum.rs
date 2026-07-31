@@ -61,20 +61,33 @@ impl PurkinjeCell {
         }
     }
 
-    pub fn step(&mut self, pf_inputs: &[FixedPoint], cf_input: FixedPoint, motor_error: FixedPoint) {
+    pub fn step(
+        &mut self,
+        pf_inputs: &[FixedPoint],
+        cf_input: FixedPoint,
+        motor_error: FixedPoint,
+    ) {
         self.climbing_fiber_error = cf_input;
         let mut total_pf = FixedPoint::ZERO;
-        for (i, (&pf_weight, &pf_act)) in self.parallel_fiber_weights.iter().zip(pf_inputs.iter()).enumerate() {
+        for (i, (&pf_weight, &pf_act)) in self
+            .parallel_fiber_weights
+            .iter()
+            .zip(pf_inputs.iter())
+            .enumerate()
+        {
             let contribution = pf_weight * pf_act;
             total_pf += contribution;
             self.pff_activity[i] = pf_act;
         }
         let avg_pf = total_pf / FixedPoint::from_int(PARALLEL_FIBERS_PER_PC as i32);
         let cf_inhibition = cf_input * FixedPoint::from_bits(13107);
-        self.membrane_potential = (avg_pf - cf_inhibition)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.membrane_potential = (avg_pf - cf_inhibition).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         self.firing_rate = FixedPoint::ONE - self.membrane_potential;
-        self.simple_spikes += if self.firing_rate > FixedPoint::from_bits(13107) { 1 } else { 0 };
+        self.simple_spikes += if self.firing_rate > FixedPoint::from_bits(13107) {
+            1
+        } else {
+            0
+        };
         if cf_input > FixedPoint::from_bits(19661) {
             self.complex_spikes += 1;
             let ltd = PF_LTD_RATE * cf_input * motor_error;
@@ -167,7 +180,13 @@ impl Cerebellum {
         }
     }
 
-    pub fn step(&mut self, sensory_input: &[FixedPoint], motor_command: FixedPoint, error: FixedPoint, expected_time: u64) {
+    pub fn step(
+        &mut self,
+        sensory_input: &[FixedPoint],
+        motor_command: FixedPoint,
+        error: FixedPoint,
+        expected_time: u64,
+    ) {
         self.tick += 1;
         self.mossy_fiber_encoding(sensory_input, motor_command);
         self.granule_layer();
@@ -187,8 +206,9 @@ impl Cerebellum {
             } else {
                 motor_command * FixedPoint::from_f32(1.0 / (i as f32 + 1.0))
             };
-            mf.encoding = (sensor_val * FixedPoint::from_bits(16384) + motor_comp * FixedPoint::from_bits(6554))
-                .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+            mf.encoding = (sensor_val * FixedPoint::from_bits(16384)
+                + motor_comp * FixedPoint::from_bits(6554))
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
             mf.active = mf.encoding > FixedPoint::from_bits(6554);
         }
     }
@@ -302,7 +322,11 @@ mod tests {
     fn test_purkinje_step_cf_inhibition() {
         let mut pc = PurkinjeCell::new(0);
         let pf_inputs = [FixedPoint::from_f32(0.5); PARALLEL_FIBERS_PER_PC];
-        pc.step(&pf_inputs, FixedPoint::from_f32(0.8), FixedPoint::from_f32(0.5));
+        pc.step(
+            &pf_inputs,
+            FixedPoint::from_f32(0.8),
+            FixedPoint::from_f32(0.5),
+        );
         assert!(pc.complex_spikes > 0);
     }
 
@@ -351,7 +375,12 @@ mod tests {
     fn test_full_step() {
         let mut c = Cerebellum::new();
         let input = [FixedPoint::from_f32(0.5); 10];
-        c.step(&input, FixedPoint::from_f32(0.3), FixedPoint::from_f32(0.1), 0);
+        c.step(
+            &input,
+            FixedPoint::from_f32(0.3),
+            FixedPoint::from_f32(0.1),
+            0,
+        );
         assert!(c.tick > 0);
         assert!(c.motor_output >= FixedPoint::ZERO);
     }

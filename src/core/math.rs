@@ -272,11 +272,7 @@ impl FixedPoint {
         }
 
         let res = ((num << Self::FRAC_BITS) / den) as i32;
-        if negative {
-            Self(-res)
-        } else {
-            Self(res)
-        }
+        if negative { Self(-res) } else { Self(res) }
     }
 
     /// Cosine approximation: cos(x) = sin(x + PI/2)
@@ -1038,7 +1034,14 @@ mod tests {
             let fp = FixedPoint::from_f32(f);
             let back = fp.to_f32();
             let diff = (back - f).abs();
-            assert!(diff < 0.0001, "roundtrip fail: {} -> {} -> {} (diff {})", f, fp.0, back, diff);
+            assert!(
+                diff < 0.0001,
+                "roundtrip fail: {} -> {} -> {} (diff {})",
+                f,
+                fp.0,
+                back,
+                diff
+            );
         }
     }
 
@@ -1048,7 +1051,10 @@ mod tests {
         for _ in 0..1000 {
             let a = FixedPoint::from_f32((rng.next_f32() - 0.5) * 200.0);
             let b = FixedPoint::from_f32((rng.next_f32() - 0.5) * 200.0);
-            assert!((a * b - b * a).abs().to_f32() < 0.001, "mul not commutative");
+            assert!(
+                (a * b - b * a).abs().to_f32() < 0.001,
+                "mul not commutative"
+            );
         }
     }
 
@@ -1072,7 +1078,14 @@ mod tests {
             let lhs = a * (b + c);
             let rhs = a * b + a * c;
             let diff = (lhs - rhs).abs().to_f32();
-            assert!(diff < 0.01, "distributive fail: a={} b={} c={} diff={}", a.to_f32(), b.to_f32(), c.to_f32(), diff);
+            assert!(
+                diff < 0.01,
+                "distributive fail: a={} b={} c={} diff={}",
+                a.to_f32(),
+                b.to_f32(),
+                c.to_f32(),
+                diff
+            );
         }
     }
 
@@ -1082,7 +1095,10 @@ mod tests {
         let high = FixedPoint::from_f32(1.0);
         assert_eq!(FixedPoint::from_f32(-5.0).clamp(low, high), low);
         assert_eq!(FixedPoint::from_f32(5.0).clamp(low, high), high);
-        assert_eq!(FixedPoint::from_f32(0.5).clamp(low, high), FixedPoint::from_f32(0.5));
+        assert_eq!(
+            FixedPoint::from_f32(0.5).clamp(low, high),
+            FixedPoint::from_f32(0.5)
+        );
     }
 
     #[test]
@@ -1102,7 +1118,14 @@ mod tests {
             let s = x.sqrt();
             let ss = s * s;
             let diff = (ss - x).abs().to_f32();
-            assert!(diff < 0.1, "sqrt(x)^2 ≈ x: x={} sqrt={} sq={} diff={}", x.to_f32(), s.to_f32(), ss.to_f32(), diff);
+            assert!(
+                diff < 0.1,
+                "sqrt(x)^2 ≈ x: x={} sqrt={} sq={} diff={}",
+                x.to_f32(),
+                s.to_f32(),
+                ss.to_f32(),
+                diff
+            );
         }
     }
 }

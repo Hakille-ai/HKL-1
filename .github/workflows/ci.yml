@@ -10,35 +10,72 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
+  format:
+    name: "📝 Format Check"
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup default nightly && rustup component add rustfmt
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+  lint:
+    name: "🔍 Clippy Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup default nightly && rustup component add clippy
+      - name: Clippy (host features)
+        run: cargo clippy --features std,alloc,simd -- -D warnings
+
+  test:
+    name: "🧪 Test Suite"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup default nightly
+      - name: Build
+        run: cargo build --features std,alloc,simd
+      - name: Unit tests
+        run: cargo test --lib --features std,alloc,simd -- --test-threads=1
+      - name: Integration tests
+        run: cargo test --test integration --features std,alloc,simd -- --test-threads=1
+      - name: All tests
+        run: cargo test --features std,alloc,simd -- --test-threads=1
+
+  cross-compile:
+    name: "🔧 Cross-Compile ${{ matrix.target }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: thumbv7em-none-eabihf
+            features: stm32f7,alloc
+            label: "ARM Cortex-M7"
+          - target: riscv32imac-unknown-none-elf
+            features: hifive1,alloc
+            label: "RISC-V RV32 (HiFive1)"
+          - target: riscv32imc-unknown-none-elf
+            features: esp32c6,alloc
+            label: "RISC-V RV32 (ESP32-C6)"
     steps:
       - uses: actions/checkout@v4
       - name: Rust toolchain
         run: |
           rustup default nightly
-          rustup component add clippy rustfmt
-          rustup target add thumbv7em-none-eabihf riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf
-      - name: Format
-        run: cargo fmt --all --check
-      - name: Clippy
-        run: cargo clippy --features std,alloc,simd
-      - name: Build (host)
-        run: cargo build --features std,alloc,simd
-      - name: Build (ARM Cortex-M7)
-        run: cargo build --target thumbv7em-none-eabihf --no-default-features --features alloc
-      - name: Build (RISC-V A)
-        run: cargo build --target riscv32imac-unknown-none-elf --no-default-features --features alloc
-      - name: Build (RISC-V no-A)
-        run: cargo build --target riscv32imc-unknown-none-elf --no-default-features --features alloc
-      - name: Build (all BSP features)
-        run: |
-          cargo build --features stm32f7,alloc
-          cargo build --features hifive1,alloc
-          cargo build --features esp32c6,alloc
-      - name: Lib tests
-        run: cargo test --lib --features std,alloc,simd
-      - name: Integration tests
-        run: cargo test --test integration --features std,alloc,simd -- --test-threads=1
-      - name: All tests
-        run: cargo test --features std,alloc,simd -- --test-threads=1
+          rustup target add ${{ matrix.target }}
+      - name: "Build for ${{ matrix.label }}"
+        run: cargo build --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
+
+  deny:
+    name: "🛡️ Dependency Audit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+      - name: Check dependencies
+        run: cargo deny check

@@ -4,8 +4,6 @@
 
 use core::sync::atomic::{AtomicU32, Ordering};
 
-
-
 /// Hardware timer register offsets (generic)
 const TIMER_CTRL: usize = 0;
 const TIMER_PRESCALER: usize = 1;

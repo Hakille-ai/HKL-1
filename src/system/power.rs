@@ -312,7 +312,6 @@ pub mod hw {
         }
     }
 
-
     /// Enter standby mode (Shutdown)
     pub fn enter_standby() {
         #[cfg(not(any(feature = "std", test)))]
@@ -322,7 +321,6 @@ pub mod hw {
             core::arch::asm!("wfi");
         }
     }
-
 
     /// Enable or disable a peripheral clock via RCC
     /// Enable or disable a peripheral clock via RCC

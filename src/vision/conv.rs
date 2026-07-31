@@ -17,9 +17,21 @@ impl SpikingConv2D {
     pub fn new() -> Self {
         Self {
             kernel: [
-                [Weight::from_f32(-0.5), Weight::from_f32(1.0), Weight::from_f32(-0.5)],
-                [Weight::from_f32( 1.0), Weight::from_f32(2.0), Weight::from_f32( 1.0)],
-                [Weight::from_f32(-0.5), Weight::from_f32(1.0), Weight::from_f32(-0.5)],
+                [
+                    Weight::from_f32(-0.5),
+                    Weight::from_f32(1.0),
+                    Weight::from_f32(-0.5),
+                ],
+                [
+                    Weight::from_f32(1.0),
+                    Weight::from_f32(2.0),
+                    Weight::from_f32(1.0),
+                ],
+                [
+                    Weight::from_f32(-0.5),
+                    Weight::from_f32(1.0),
+                    Weight::from_f32(-0.5),
+                ],
             ],
             threshold: FixedPoint::from_f32(0.3),
         }

@@ -405,7 +405,6 @@ pub static mut TEMPORAL_COGNITION: MaybeUninit<TemporalCognition> = MaybeUninit:
 static INITIALIZED_TEMPORAL_COGNITION: core::sync::atomic::AtomicBool =
     core::sync::atomic::AtomicBool::new(false);
 
-
 pub fn init_temporal_cognition() {
     unsafe {
         TEMPORAL_COGNITION.write(TemporalCognition::new());
@@ -421,7 +420,6 @@ pub fn temporal_cognition() -> &'static mut TemporalCognition {
         &mut *TEMPORAL_COGNITION.as_mut_ptr()
     }
 }
-
 
 // ---------------------------------------------------------------------------
 // Tests

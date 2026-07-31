@@ -3,7 +3,6 @@
 
 use crate::efpga::stability::FrozenSubnetwork;
 
-
 pub const MAX_VERILOG_BUFFER_LEN: usize = 2048;
 
 /// Synthesizable Verilog HDL Generator
@@ -29,10 +28,12 @@ impl HdlGenerator {
                 let tgt_idx = syn.target_id.index() % 16;
                 let w_raw = syn.weight.0;
 
-
                 let line = alloc::format!(
                     "      if (in_spikes[{}]) V_memb[{}] <= V_memb[{}] + 16'd{};\n",
-                    src_idx, tgt_idx, tgt_idx, w_raw
+                    src_idx,
+                    tgt_idx,
+                    tgt_idx,
+                    w_raw
                 );
                 let bytes = line.as_bytes();
                 if offset + bytes.len() < MAX_VERILOG_BUFFER_LEN - 100 {

@@ -4,8 +4,8 @@ use hkl1::audio::a1_formants::{FormantExtractor, VowelClass};
 use hkl1::audio::cochlea::{CochleaEngine, NUM_COCHLEAR_BANDS};
 use hkl1::audio::pitch_rhythm::PitchRhythmEngine;
 
-use hkl1::audio::voice_synth::SpikeVoiceSynthesizer;
 use hkl1::audio::audio_engine;
+use hkl1::audio::voice_synth::SpikeVoiceSynthesizer;
 use hkl1::core::math::FixedPoint;
 use hkl1::core::memory::NeuronId;
 
@@ -26,8 +26,14 @@ fn test_cochlea_gammatone_erb_filtering() {
     let responses = cochlea.process_audio_samples(&pcm, 1000);
 
     // Band ~11 is centered at 1030 Hz
-    assert!(responses[11].energy > FixedPoint::ZERO, "1kHz band must receive energy");
-    assert!(cochlea.event_count > 0, "PFM hair cells must generate spikes for 1kHz tone");
+    assert!(
+        responses[11].energy > FixedPoint::ZERO,
+        "1kHz band must receive energy"
+    );
+    assert!(
+        cochlea.event_count > 0,
+        "PFM hair cells must generate spikes for 1kHz tone"
+    );
 }
 
 #[test]
@@ -75,7 +81,10 @@ fn test_speech_onset_and_rhythm_detection() {
     assert!(!profile1.speech_onset_detected);
 
     let profile2 = pitch_engine.process_pitch_rhythm(&pcm_loud);
-    assert!(profile2.speech_onset_detected, "Sudden energy onset must be detected!");
+    assert!(
+        profile2.speech_onset_detected,
+        "Sudden energy onset must be detected!"
+    );
 }
 
 #[test]
@@ -98,7 +107,10 @@ fn test_spiking_voice_pcm_synthesizer() {
             break;
         }
     }
-    assert!(non_zero, "Synthesizer must generate non-zero PCM audio samples");
+    assert!(
+        non_zero,
+        "Synthesizer must generate non-zero PCM audio samples"
+    );
 }
 
 #[test]

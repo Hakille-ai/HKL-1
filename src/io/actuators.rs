@@ -109,7 +109,10 @@ pub struct GpioPin {
 
 impl GpioPin {
     pub const fn new(pin: u8, output_mode: bool) -> Self {
-        Self { _pin: pin, _output_mode: output_mode }
+        Self {
+            _pin: pin,
+            _output_mode: output_mode,
+        }
     }
 
     pub fn init(&self) {
@@ -155,7 +158,9 @@ impl GpioPin {
             return false;
         }
         #[cfg(not(any(feature = "std", test)))]
-        unsafe { (read_volatile(mmio::GPIOB_ODR) & (1 << self._pin)) != 0 }
+        unsafe {
+            (read_volatile(mmio::GPIOB_ODR) & (1 << self._pin)) != 0
+        }
     }
 }
 
@@ -200,7 +205,6 @@ impl DacOutput {
         let _ = value;
     }
 }
-
 
 // ---------------------------------------------------------------------------
 // ActuatorManager — orchestrates all outputs

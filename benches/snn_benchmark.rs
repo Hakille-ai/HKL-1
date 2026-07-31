@@ -74,7 +74,10 @@ fn main() {
 
     // 4. Parallel SNN Stepping Benchmark
     let threads = hw.cpu_cores.min(4);
-    println!("\n[Bench 4] Multi-Thread Parallel SNN Stepping (1,000 steps across {} cores)...", threads);
+    println!(
+        "\n[Bench 4] Multi-Thread Parallel SNN Stepping (1,000 steps across {} cores)...",
+        threads
+    );
     net.time = 0;
     net.cycle_active = false;
     net.warp_active = false;

@@ -2,16 +2,18 @@
 //!
 //! Designed for bare-metal ARM Cortex-M7 (STM32F7) and RISC-V (HiFive1/ESP32-C6) QEMU target execution.
 
-#![no_std]
-#![no_main]
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_main)]
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
+#[cfg(not(feature = "std"))]
 use core::panic::PanicInfo;
-use hkl1::system::boot::BootSequence;
 use hkl1::snn::network::network;
+use hkl1::system::boot::BootSequence;
 
+#[cfg(not(feature = "std"))]
 struct BareMetalAllocator;
 
+#[cfg(not(feature = "std"))]
 unsafe impl core::alloc::GlobalAlloc for BareMetalAllocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         static mut HEAP: [u8; 65536] = [0; 65536];
@@ -33,6 +35,7 @@ unsafe impl core::alloc::GlobalAlloc for BareMetalAllocator {
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: core::alloc::Layout) {}
 }
 
+#[cfg(not(feature = "std"))]
 #[global_allocator]
 static ALLOCATOR: BareMetalAllocator = BareMetalAllocator;
 
@@ -42,7 +45,7 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-#[unsafe(no_mangle)]
+#[cfg_attr(not(feature = "std"), unsafe(no_mangle))]
 pub extern "C" fn main() -> ! {
     // 1. Execute bare-metal boot sequence (t=0 -> 22ms)
     BootSequence::init_hardware();

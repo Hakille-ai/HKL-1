@@ -2,9 +2,9 @@
 //! Implements Offline Experience Replay (Sharp Wave-Ripples SWR), Few-Shot Fast-Weights Adaptation,
 //! Meta-Learning hyperparameter auto-tuning, and Elastic Weight Consolidation (EWC) Fisher Information Protection.
 
+use crate::cognitive::episodic::ReplayExperience;
 use crate::core::math::FixedPoint;
 use crate::core::memory::NeuronId;
-use crate::cognitive::episodic::ReplayExperience;
 
 pub const MAX_PROTECTED_SYNAPSES: usize = 256;
 
@@ -53,7 +53,12 @@ impl ElasticWeightConsolidation {
     }
 
     /// Calculate EWC penalty gradient adjustment to prevent catastrophic forgetting
-    pub fn compute_ewc_penalty_delta(&self, source_id: NeuronId, target_id: NeuronId, current_weight: FixedPoint) -> FixedPoint {
+    pub fn compute_ewc_penalty_delta(
+        &self,
+        source_id: NeuronId,
+        target_id: NeuronId,
+        current_weight: FixedPoint,
+    ) -> FixedPoint {
         for i in 0..self.count {
             if let Some(p) = self.protected_synapses[i] {
                 if p.source_id == source_id && p.target_id == target_id {
@@ -105,7 +110,11 @@ impl FewShotAdapter {
     }
 
     /// Compute boosted learning rate for rapid few-shot adaptation
-    pub fn get_boosted_lr(&mut self, base_lr: FixedPoint, prediction_error: FixedPoint) -> FixedPoint {
+    pub fn get_boosted_lr(
+        &mut self,
+        base_lr: FixedPoint,
+        prediction_error: FixedPoint,
+    ) -> FixedPoint {
         if prediction_error > FixedPoint::from_f32(0.5) {
             self.shots_count += 1;
             base_lr * self.boost_factor
@@ -139,8 +148,10 @@ impl MetaLearningEngine {
             self.current_theta_da -= self.adaptation_rate;
         } else {
             // Consolidate for exploitation
-            self.current_eta_stdp = (self.current_eta_stdp - self.adaptation_rate).max(FixedPoint::from_f32(0.001));
-            self.current_theta_da = (self.current_theta_da + self.adaptation_rate).min(FixedPoint::from_f32(0.80));
+            self.current_eta_stdp =
+                (self.current_eta_stdp - self.adaptation_rate).max(FixedPoint::from_f32(0.001));
+            self.current_theta_da =
+                (self.current_theta_da + self.adaptation_rate).min(FixedPoint::from_f32(0.80));
         }
     }
 }

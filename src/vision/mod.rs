@@ -124,7 +124,12 @@ impl VisualEngine {
         let _conv2d_out = self.conv2d.convolve_2d(&conv_input);
         let _conv3d_out = self.conv3d.convolve_3d(&conv_input);
 
-        (ganglion_responses, v1_responses, motion_vec, prediction_error)
+        (
+            ganglion_responses,
+            v1_responses,
+            motion_vec,
+            prediction_error,
+        )
     }
 }
 
@@ -179,7 +184,10 @@ mod tests {
 
     #[test]
     fn visual_gabor_responses() {
-        let retina_output = [GanglionResponse { on_response: FixedPoint::ONE, off_response: FixedPoint::ZERO }; VISION_PIXELS];
+        let retina_output = [GanglionResponse {
+            on_response: FixedPoint::ONE,
+            off_response: FixedPoint::ZERO,
+        }; VISION_PIXELS];
         let v1_map = GaborBank::process_retina(&retina_output);
         assert_eq!(v1_map.len(), VISION_PIXELS);
     }
@@ -194,8 +202,15 @@ mod tests {
     #[test]
     fn visual_collision_detection() {
         let obj = PhysicalObject::empty(2);
-        let agent = SpatialPoint3D { x: FixedPoint::ZERO, y: FixedPoint::ZERO, z: FixedPoint::ZERO };
+        let agent = SpatialPoint3D {
+            x: FixedPoint::ZERO,
+            y: FixedPoint::ZERO,
+            z: FixedPoint::ZERO,
+        };
         let hit = obj.check_collision(&agent, FixedPoint::from_f32(10.0));
-        assert!(hit, "object at origin should collide with agent at origin within radius 10");
+        assert!(
+            hit,
+            "object at origin should collide with agent at origin within radius 10"
+        );
     }
 }

@@ -634,10 +634,10 @@ impl EpisodicMemory {
         let dt_ms = FixedPoint::from_f32(dt as f32 * 0.001);
         self.velocity_x = vx.clamp(FixedPoint::from_f32(-1.0), FixedPoint::ONE);
         self.velocity_y = vy.clamp(FixedPoint::from_f32(-1.0), FixedPoint::ONE);
-        self.position_x = (self.position_x + self.velocity_x * dt_ms)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        self.position_y = (self.position_y + self.velocity_y * dt_ms)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.position_x =
+            (self.position_x + self.velocity_x * dt_ms).clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.position_y =
+            (self.position_y + self.velocity_y * dt_ms).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         self.total_place_updates += 1;
     }
 
@@ -646,8 +646,10 @@ impl EpisodicMemory {
         let period = FixedPoint::from_f32(THETA_RHYTHM_PERIOD as f32);
         let step_fp = FixedPoint::from_f32(timestep as f32);
         let phase_delta = step_fp / period * FixedPoint::from_f32(core::f32::consts::TAU);
-        self.theta.phase = (self.theta.phase + phase_delta)
-            .clamp(FixedPoint::ZERO, FixedPoint::from_f32(core::f32::consts::TAU));
+        self.theta.phase = (self.theta.phase + phase_delta).clamp(
+            FixedPoint::ZERO,
+            FixedPoint::from_f32(core::f32::consts::TAU),
+        );
     }
 
     /// Current theta phase as a fraction of cycle (0.0–1.0)
@@ -700,8 +702,14 @@ impl EpisodicMemory {
 
             // Hexagonal grid firing (3 directions, 60° apart)
             let c1 = (rx * s * FixedPoint::from_f32(2.0)).cos();
-            let c2 = ((rx * FixedPoint::from_f32(-0.5) + ry * FixedPoint::from_f32(0.866)) * s * FixedPoint::from_f32(2.0)).cos();
-            let c3 = ((rx * FixedPoint::from_f32(-0.5) - ry * FixedPoint::from_f32(0.866)) * s * FixedPoint::from_f32(2.0)).cos();
+            let c2 = ((rx * FixedPoint::from_f32(-0.5) + ry * FixedPoint::from_f32(0.866))
+                * s
+                * FixedPoint::from_f32(2.0))
+            .cos();
+            let c3 = ((rx * FixedPoint::from_f32(-0.5) - ry * FixedPoint::from_f32(0.866))
+                * s
+                * FixedPoint::from_f32(2.0))
+            .cos();
 
             let sum_cos = c1 + c2 + c3;
             // Grid firing rate = (sum of cos + 3) / 6 → 0..1
@@ -727,8 +735,8 @@ impl EpisodicMemory {
         let dist = (dx * dx + dy * dy).sqrt();
         let phase = self.theta_phase_frac();
         // Precession: theta phase shifts proportional to distance from field center
-        let precession = (phase + dist * FixedPoint::from_f32(2.0))
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        let precession =
+            (phase + dist * FixedPoint::from_f32(2.0)).clamp(FixedPoint::ZERO, FixedPoint::ONE);
         precession
     }
 
@@ -764,7 +772,9 @@ impl EpisodicMemory {
         let mut count = 0;
         let mut ripples = [0u64; 32];
         for i in 0..self.st_count.min(32) {
-            if self.short_term[i].valid && self.short_term[i].significance > FixedPoint::from_f32(0.4) {
+            if self.short_term[i].valid
+                && self.short_term[i].significance > FixedPoint::from_f32(0.4)
+            {
                 ripples[count] = self.short_term[i].state_hash;
                 count += 1;
             }
@@ -1281,7 +1291,15 @@ mod tests {
     fn ripple_replay_does_not_panic() {
         let mut mem = EpisodicMemory::new();
         for i in 0..10 {
-            mem.record(i as u64, 1, (i + 1) as u64, FixedPoint::from_f32(0.8), FixedPoint::ZERO, FixedPoint::ZERO, i as u64);
+            mem.record(
+                i as u64,
+                1,
+                (i + 1) as u64,
+                FixedPoint::from_f32(0.8),
+                FixedPoint::ZERO,
+                FixedPoint::ZERO,
+                i as u64,
+            );
         }
         let count = mem.trigger_ripple_replay(100);
         // Should have found some memories to replay
@@ -1322,9 +1340,16 @@ mod tests {
     #[test]
     fn grid_cells_have_multiple_scales() {
         let mem = EpisodicMemory::new();
-        let spacings: [FixedPoint; GRID_CELLS] = core::array::from_fn(|i| mem.grid_cells[i].spacing);
-        let min_spacing = spacings.iter().copied().fold(FixedPoint::from_f32(100.0), |a, b| a.min(b));
-        let max_spacing = spacings.iter().copied().fold(FixedPoint::ZERO, |a, b| a.max(b));
+        let spacings: [FixedPoint; GRID_CELLS] =
+            core::array::from_fn(|i| mem.grid_cells[i].spacing);
+        let min_spacing = spacings
+            .iter()
+            .copied()
+            .fold(FixedPoint::from_f32(100.0), |a, b| a.min(b));
+        let max_spacing = spacings
+            .iter()
+            .copied()
+            .fold(FixedPoint::ZERO, |a, b| a.max(b));
         assert!(min_spacing > FixedPoint::ZERO);
         assert!(max_spacing >= min_spacing);
     }

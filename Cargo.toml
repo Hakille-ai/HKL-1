@@ -41,6 +41,7 @@ required-features = ["std"]
 [[example]]
 name = "qemu_baremetal_demo"
 path = "examples/qemu_baremetal_demo.rs"
+required-features = ["std"]
 
 [[bench]]
 name = "snn_benchmark"

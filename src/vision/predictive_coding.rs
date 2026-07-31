@@ -34,7 +34,8 @@ impl VisualPredictiveCoding {
                 let src_idx = p_y * VISION_WIDTH + p_x;
                 let dst_idx = y * VISION_WIDTH + x;
 
-                self.predicted_frame[dst_idx] = FixedPoint::from_f32(current_frame[src_idx] as f32 / 255.0);
+                self.predicted_frame[dst_idx] =
+                    FixedPoint::from_f32(current_frame[src_idx] as f32 / 255.0);
             }
         }
     }

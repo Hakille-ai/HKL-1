@@ -42,9 +42,12 @@ impl ThalamicRelay {
     }
 
     pub fn step(&mut self, sensory_input: FixedPoint, attention_signal: FixedPoint, tick: u64) {
-        self.attention_gain += (attention_signal - self.attention_gain) * FixedPoint::from_bits(3277);
+        self.attention_gain +=
+            (attention_signal - self.attention_gain) * FixedPoint::from_bits(3277);
         self.attention_gain = self.attention_gain.clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        let gated_input = sensory_input * self.sensory_gate * (FixedPoint::from_f32(0.5) + self.attention_gain * FixedPoint::from_f32(0.5));
+        let gated_input = sensory_input
+            * self.sensory_gate
+            * (FixedPoint::from_f32(0.5) + self.attention_gain * FixedPoint::from_f32(0.5));
         let leak = FixedPoint::from_bits(6554);
         self.burst_calcium = if tick % 100 < 5 {
             self.burst_calcium + FixedPoint::from_bits(6554)
@@ -60,7 +63,9 @@ impl ThalamicRelay {
         } else {
             self.membrane_potential += gated_input * TONIC_DRIVE - leak * self.membrane_potential;
         }
-        self.membrane_potential = self.membrane_potential.clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.membrane_potential = self
+            .membrane_potential
+            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         if self.membrane_potential > BURST_THRESHOLD {
             self.output_rate = self.membrane_potential;
             self.active = true;
@@ -78,7 +83,11 @@ impl ThalamicRelay {
     }
 
     pub fn set_gate(&mut self, open: bool) {
-        self.sensory_gate = if open { FixedPoint::ONE } else { FixedPoint::ZERO };
+        self.sensory_gate = if open {
+            FixedPoint::ONE
+        } else {
+            FixedPoint::ZERO
+        };
     }
 }
 
@@ -122,8 +131,8 @@ impl ThalamicReticularNucleus {
         self.global_inhibition = (inhibition / FixedPoint::from_int((RELAY_NUCLEI - 1) as i32))
             .clamp(FixedPoint::ZERO, FixedPoint::ONE);
         let feedback = cortical_feedback * FixedPoint::from_bits(6554);
-        self.global_inhibition = (self.global_inhibition + feedback)
-            .clamp(FixedPoint::ZERO, FixedPoint::ONE);
+        self.global_inhibition =
+            (self.global_inhibition + feedback).clamp(FixedPoint::ZERO, FixedPoint::ONE);
     }
 
     pub fn gate_for_relay(&self, relay_idx: u8) -> FixedPoint {
@@ -155,14 +164,25 @@ pub struct Thalamus {
 impl Thalamus {
     pub const fn new() -> Self {
         Self {
-            relays: [ThalamicRelay::new(0), ThalamicRelay::new(1), ThalamicRelay::new(2), ThalamicRelay::new(3)],
+            relays: [
+                ThalamicRelay::new(0),
+                ThalamicRelay::new(1),
+                ThalamicRelay::new(2),
+                ThalamicRelay::new(3),
+            ],
             trn: ThalamicReticularNucleus::new(),
             selected_modality: SensoryModality::Visual,
             global_gate: FixedPoint::ONE,
         }
     }
 
-    pub fn step(&mut self, sensory_inputs: &[FixedPoint; RELAY_NUCLEI], attention: FixedPoint, cortical_feedback: FixedPoint, tick: u64) {
+    pub fn step(
+        &mut self,
+        sensory_inputs: &[FixedPoint; RELAY_NUCLEI],
+        attention: FixedPoint,
+        cortical_feedback: FixedPoint,
+        tick: u64,
+    ) {
         let mut relay_acts = [FixedPoint::ZERO; RELAY_NUCLEI];
         for (i, relay) in self.relays.iter_mut().enumerate() {
             let attn = if i == self.selected_modality as u8 as usize {
@@ -280,7 +300,12 @@ mod tests {
     #[test]
     fn test_trn_step_selects_winner() {
         let mut trn = ThalamicReticularNucleus::new();
-        let acts = [FixedPoint::from_f32(0.8), FixedPoint::from_f32(0.2), FixedPoint::ZERO, FixedPoint::ZERO];
+        let acts = [
+            FixedPoint::from_f32(0.8),
+            FixedPoint::from_f32(0.2),
+            FixedPoint::ZERO,
+            FixedPoint::ZERO,
+        ];
         trn.step(&acts, FixedPoint::ZERO);
         assert_eq!(trn.winner_idx, 0);
         assert!(trn.attention_focus > FixedPoint::ZERO);

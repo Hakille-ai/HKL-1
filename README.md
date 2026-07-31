@@ -5,6 +5,9 @@
 </h3>
 
 <p align="center">
+  <a href="https://github.com/Hakille-ai/HKL-1/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Hakille-ai/HKL-1/ci.yml?branch=main&style=flat-square&label=CI&logo=github" alt="CI">
+  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue?style=flat-square" alt="License">
   </a>

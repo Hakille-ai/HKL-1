@@ -29,7 +29,11 @@ fn test_spike_token_decoding_wta() {
 
     let decoded = decoder.decode_firing_rates(&motor_potentials);
 
-    assert_eq!(decoded, Some(b'A'), "WTA must select token with highest firing potential");
+    assert_eq!(
+        decoded,
+        Some(b'A'),
+        "WTA must select token with highest firing potential"
+    );
     assert_eq!(decoder.get_response_text(), b"A");
 }
 

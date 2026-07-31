@@ -24,7 +24,10 @@ fn test_offline_experience_replay_swr() {
 
     assert!(replay_engine.active_swr);
     assert_eq!(replay_engine.replay_count, 1);
-    assert!(reinforced_reward > sample_trace.reward, "Replay must reinforce reward!");
+    assert!(
+        reinforced_reward > sample_trace.reward,
+        "Replay must reinforce reward!"
+    );
     assert_eq!(swr_freq_hz, 200, "SWR frequency must be ~200 Hz");
 }
 
@@ -77,7 +80,10 @@ fn test_elastic_weight_consolidation_ewc_protection() {
     let mutated_w = FixedPoint::from_f32(0.20);
     let penalty = ewc.compute_ewc_penalty_delta(src, tgt, mutated_w);
 
-    assert!(penalty < FixedPoint::ZERO, "EWC penalty must oppose weight perturbation!");
+    assert!(
+        penalty < FixedPoint::ZERO,
+        "EWC penalty must oppose weight perturbation!"
+    );
 }
 
 #[test]

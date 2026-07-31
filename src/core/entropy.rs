@@ -6,8 +6,6 @@
 use crate::core::math::{FixedPoint, XorShift64Star};
 use core::sync::atomic::{AtomicU32, Ordering};
 
-
-
 /// Cognitive mode derived from entropy
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CognitiveMode {

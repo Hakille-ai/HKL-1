@@ -459,7 +459,10 @@ mod tests {
     fn test_hierarchy_levels_default() {
         let f = FederatedLearning::new();
         assert_eq!(f.hierarchy_levels[0].level, 0);
-        assert_eq!(f.hierarchy_levels[0].consensus_threshold, FixedPoint::from_f32(0.6));
+        assert_eq!(
+            f.hierarchy_levels[0].consensus_threshold,
+            FixedPoint::from_f32(0.6)
+        );
     }
 
     #[test]

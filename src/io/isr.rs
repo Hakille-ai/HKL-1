@@ -173,7 +173,6 @@ pub mod peripheral {
     use crate::io::sensors::mmio;
     use core::ptr::{read_volatile, write_volatile};
 
-
     pub const TIM2_SR: *mut u32 = 0x4000_0010 as *mut u32;
     pub const TIM2_SR_UIF_MASK: u32 = 1; // Update interrupt flag
 
@@ -428,7 +427,7 @@ pub fn init_isr_system(_config: &IsrConfig) {
 fn configure_tim2_interrupt(interval_us: u32) {
     #[cfg(target_arch = "arm")]
     {
-    use core::ptr::write_volatile;
+        use core::ptr::write_volatile;
         // TIM2 base: 0x4000_0000
         const TIM2_PSC: *mut u32 = 0x4000_0028 as *mut u32;
         const TIM2_ARR: *mut u32 = 0x4000_002C as *mut u32;

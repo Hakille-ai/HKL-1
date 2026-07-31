@@ -23,7 +23,7 @@ impl DepthEngine {
     pub fn new() -> Self {
         Self {
             focal_length: FixedPoint::from_f32(50.0), // f = 50
-            baseline: FixedPoint::from_f32(6.5),     // B = 6.5 cm
+            baseline: FixedPoint::from_f32(6.5),      // B = 6.5 cm
             max_disparity: 8,
         }
     }

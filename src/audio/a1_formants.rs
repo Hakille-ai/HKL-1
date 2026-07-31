@@ -2,8 +2,8 @@
 //! Maps tonotopic frequency channels, extracts vocal formants (F1, F2, F3),
 //! and classifies fundamental vowels (/a/, /i/, /u/, /e/, /o/).
 
-use crate::core::math::FixedPoint;
 use crate::audio::cochlea::{BandResponse, ERB_CENTER_FREQS_HZ, NUM_COCHLEAR_BANDS};
+use crate::core::math::FixedPoint;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VowelClass {

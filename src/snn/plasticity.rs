@@ -97,7 +97,6 @@ impl PlateauPotential {
         }
         self.active
     }
-
 }
 
 pub static mut CALCIUM_MODELS: [MaybeUninit<CalciumModel>; crate::MAX_NEURONS] =

@@ -56,8 +56,11 @@ impl HabituationTracker {
         }
         let denom = (self.slot_count as u32).max(1);
         let avg = hits / denom;
-        let raw = (avg as f32) / ((avg as f32) + 10.0);
-        self.familiarity = FixedPoint::from_f32(raw);
+        let x = FixedPoint::from_f32(avg as f32 - 10.0);
+        let neg_half_x = FixedPoint::from_f32(-0.5) * x;
+        let exp_val = neg_half_x.exp();
+        let ratio = FixedPoint::ONE / (FixedPoint::ONE + exp_val);
+        self.familiarity = ratio;
         self.familiarity = self.familiarity.clamp(FixedPoint::ZERO, FixedPoint::ONE);
     }
 
@@ -144,7 +147,10 @@ impl CuriosityEngine {
     }
 
     pub fn is_layer_inhibited(&self, layer_hash: u32) -> bool {
-        self.ibl_tags.iter().zip(self.ibl_decay.iter()).any(|(&tag, &decay)| tag == layer_hash && decay > 0)
+        self.ibl_tags
+            .iter()
+            .zip(self.ibl_decay.iter())
+            .any(|(&tag, &decay)| tag == layer_hash && decay > 0)
     }
 
     pub fn decay_ibl(&mut self) {
@@ -249,7 +255,7 @@ impl CuriosityEngine {
     fn compute_network_hash(&self, net: &Network) -> u32 {
         let mut h: u32 = 5381;
         let count = NEURON_COUNT.load(core::sync::atomic::Ordering::Relaxed);
-        for i in (0..count.min(512)).step_by(16) {
+        for i in (0..count.min(1024.min(crate::MAX_NEURONS))).step_by(8) {
             let id = NeuronId::new(i as u16);
             let state = crate::core::memory::neuron_state_ref(id);
             let bits = state.membrane_potential.to_bits();
@@ -283,6 +289,7 @@ impl CuriosityEngine {
     pub fn activate_dreaming(&mut self) {
         self.dreaming_active = true;
         self.dream_count += 1;
+        self.last_dream_time = unsafe { crate::core::time::METABOLIC_CLOCK.ticks_1khz() };
     }
 
     pub fn inject_noise(&mut self, _net: &mut Network, now: u32) {
@@ -303,6 +310,11 @@ impl CuriosityEngine {
             let idx = (rng.next_u32() as u16) % count as u16;
             let id = NeuronId::new(idx);
             let state = neuron_state(id);
+
+            let layer_hash = (state.layer as u32).wrapping_mul(0x9e3779b9);
+            if self.is_layer_inhibited(layer_hash) {
+                continue;
+            }
 
             let amp = if state.flags.has(NeuronFlags::PREDICTOR_MODE) {
                 self.noise_amplitude
@@ -571,5 +583,31 @@ mod tests {
         ce.boredom_accumulator = FixedPoint::from_f32(0.4);
         ce.forced_exploration_cooldown = 0;
         assert!(!ce.dreaming_active);
+    }
+
+    #[test]
+    fn test_dreaming_does_not_immediately_terminate() {
+        let mut ce = CuriosityEngine::new();
+        ce.activate_dreaming();
+        let mut net = Network::new();
+        ce.inject_noise(&mut net, ce.last_dream_time + ce.dream_duration_ms - 1);
+        assert!(ce.dreaming_active);
+    }
+
+    #[test]
+    fn test_ibl_prevents_noise_on_inhibited_layer() {
+        let mut ce = CuriosityEngine::new();
+        let layer_hash = (1_u32).wrapping_mul(0x9e3779b9);
+        ce.inhibit_layer(layer_hash, 10);
+        assert!(ce.is_layer_inhibited(layer_hash));
+    }
+
+    #[test]
+    fn test_sigmoid_familiarity_shape() {
+        let mut ht = HabituationTracker::new();
+        for _ in 0..50 {
+            ht.record_stimulus(0x9999);
+        }
+        assert!(ht.familiarity > FixedPoint::from_f32(0.9));
     }
 }

@@ -197,7 +197,8 @@ pub fn capture_simulation_snapshot() {
         for i in 0..neuron_count {
             dump.neuron_states[i] = core::ptr::read(NEURON_ARRAY[i].as_ptr());
         }
-        let synapse_count = (SYNAPSE_COUNT.load(Ordering::Relaxed) as usize).min(crate::MAX_SYNAPSES);
+        let synapse_count =
+            (SYNAPSE_COUNT.load(Ordering::Relaxed) as usize).min(crate::MAX_SYNAPSES);
         for i in 0..synapse_count {
             dump.synapse_data[i] = core::ptr::read(SYNAPSE_ARRAY[i].as_ptr());
         }

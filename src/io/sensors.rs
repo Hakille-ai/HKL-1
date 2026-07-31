@@ -76,7 +76,6 @@ impl I2cBus {
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
-
             // Generate START condition
             let cr1 = read_volatile(mmio::I2C1_CR1);
             write_volatile(mmio::I2C1_CR1, cr1 | (1 << 8) | (1 << 0)); // START + PE
@@ -191,7 +190,6 @@ impl SpiBus {
             // Write dummy byte to generate clock
             write_volatile(mmio::SPI1_DR, 0x00);
 
-
             let mut wait = 10000;
             while read_volatile(mmio::SPI1_SR) & (1 << 1) == 0 {
                 // TXE wait
@@ -276,7 +274,6 @@ impl AdcChannel {
         }
     }
 
-
     pub fn read_raw(&self) -> Option<u16> {
         #[cfg(any(feature = "std", test))]
         {
@@ -286,7 +283,6 @@ impl AdcChannel {
         unsafe {
             // Set channel in sequence register
             write_volatile(mmio::ADC1_SQR3, self._channel as u32);
-
 
             // Start conversion
             write_volatile(mmio::ADC1_CR2, read_volatile(mmio::ADC1_CR2) | (1 << 0));
@@ -381,8 +377,6 @@ pub fn read_gpio_pin(_pin: u8) -> bool {
         (idr & (1 << _pin)) != 0
     }
 }
-
-
 
 // ---------------------------------------------------------------------------
 // SensorManager — orchestrates all sensor reads

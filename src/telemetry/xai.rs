@@ -305,7 +305,10 @@ impl CausalGraph {
 
         let header = b"digraph HKL1_Causal {\n  rankdir=LR;\n  node [shape=box style=filled fillcolor=lightyellow];\n";
         for &b in header {
-            if pos < 2048 { buf[pos] = b; pos += 1; }
+            if pos < 2048 {
+                buf[pos] = b;
+                pos += 1;
+            }
         }
 
         let edge_limit = self.edge_count.min(128);
@@ -320,19 +323,164 @@ impl CausalGraph {
                 e.confidence.to_f32().max(0.5),
             );
             for &b in line.as_bytes() {
-                if pos < 2048 { buf[pos] = b; pos += 1; }
+                if pos < 2048 {
+                    buf[pos] = b;
+                    pos += 1;
+                }
             }
         }
 
         let footer = b"}\n";
         for &b in footer {
-            if pos < 2048 { buf[pos] = b; pos += 1; }
+            if pos < 2048 {
+                buf[pos] = b;
+                pos += 1;
+            }
         }
 
         CausalTextExport {
             data: buf,
             length: pos as u16,
         }
+    }
+
+    pub fn format_decision_explanation(
+        &self,
+        _output_neuron: usize,
+        decision_label: &[u8],
+    ) -> [u8; 512] {
+        let mut buf = [0u8; 512];
+        let mut pos = 0;
+
+        macro_rules! write_str {
+            ($s:expr) => {
+                for &c in $s {
+                    if pos < 512 {
+                        buf[pos] = c;
+                        pos += 1;
+                    }
+                }
+            };
+        }
+
+        macro_rules! write_num {
+            ($v:expr, $width:expr) => {{
+                let mut v: u16 = $v;
+                let width: usize = $width;
+                let mut tmp = [0u8; 5];
+                let mut i = 0;
+                if v == 0 {
+                    tmp[i] = b'0';
+                    i += 1;
+                } else {
+                    while v > 0 {
+                        tmp[i] = b'0' + (v % 10) as u8;
+                        v /= 10;
+                        i += 1;
+                    }
+                }
+                while i < width && i < 5 {
+                    tmp[i] = b'0';
+                    i += 1;
+                }
+                for j in (0..i).rev() {
+                    if pos < 512 {
+                        buf[pos] = tmp[j];
+                        pos += 1;
+                    }
+                }
+            }};
+        }
+
+        macro_rules! write_float2 {
+            ($f:expr) => {{
+                let val = $f.to_f32();
+                let abs_val = if val < 0.0 { -val } else { val };
+                let int_part = abs_val as u16;
+                let frac_part = ((abs_val - int_part as f32) * 100.0) as u32;
+
+                if val < 0.0 {
+                    write_str!(b"-");
+                }
+                write_num!(int_part, 1);
+                write_str!(b".");
+                let frac1 = (frac_part / 10) as u8;
+                let frac2 = (frac_part % 10) as u8;
+                if pos < 512 {
+                    buf[pos] = b'0' + frac1;
+                    pos += 1;
+                }
+                if pos < 512 {
+                    buf[pos] = b'0' + frac2;
+                    pos += 1;
+                }
+            }};
+        }
+
+        write_str!(b"Decision: ");
+        write_str!(decision_label);
+        write_str!(b" (confidence: ");
+
+        let paths = self.top_causal_paths(3);
+        let conf = if paths.is_empty() {
+            FixedPoint::ZERO
+        } else {
+            paths[0].2
+        };
+        write_float2!(conf);
+        write_str!(b")\nTop path: ");
+
+        if paths.is_empty() {
+            write_str!(b"None\n");
+        } else {
+            for (idx, p) in paths.iter().enumerate() {
+                if idx > 0 {
+                    write_str!(b" | ");
+                }
+                write_str!(b"[L");
+                write_num!(p.4 as u16, 1);
+                write_str!(b":");
+                write_num!(p.0.index() as u16, 3);
+                write_str!(b"] ->");
+                write_float2!(p.2);
+                write_str!(b"-> [L");
+                write_num!(p.5 as u16, 1);
+                write_str!(b":");
+                write_num!(p.1.index() as u16, 3);
+                write_str!(b"]");
+            }
+            write_str!(b"\n");
+        }
+
+        write_str!(b"Features: ");
+        let mut first = true;
+        for i in 0..self.feature_count as usize {
+            if !first {
+                write_str!(b", ");
+            }
+            first = false;
+            let f = &self.features[i];
+
+            let mut end = 0;
+            while end < 32 && f.description[end] != 0 {
+                end += 1;
+            }
+            write_str!(&f.description[..end]);
+
+            write_str!(b" (");
+            if f.sign > 0 {
+                write_str!(b"+");
+            } else if f.sign < 0 {
+                write_str!(b"-");
+            }
+            write_float2!(f.contribution);
+            write_str!(b")");
+        }
+        if first {
+            write_str!(b"None");
+        }
+
+        buf
     }
 }
 
@@ -420,6 +568,107 @@ pub fn analyze_current_trace() {
         analyzer.analyze(trace, graph);
         analyzer.analyze_and_record(trace);
     }
+}
+
+pub fn format_neuromodulator_context() -> [u8; 256] {
+    let mut buf = [0u8; 256];
+    let mut pos = 0usize;
+
+    let nm = unsafe { &crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS };
+
+    // Helper: write bytes to buffer
+    fn write_bytes(buf: &mut [u8; 256], pos: &mut usize, s: &[u8]) {
+        for &c in s {
+            if *pos < 256 {
+                buf[*pos] = c;
+                *pos += 1;
+            }
+        }
+    }
+
+    // Helper: write a FixedPoint as "X.YZ"
+    fn write_fp(buf: &mut [u8; 256], pos: &mut usize, f: FixedPoint) {
+        let val = f.to_f32();
+        let abs_val = if val < 0.0 { -val } else { val };
+        if val < 0.0 {
+            if *pos < 256 {
+                buf[*pos] = b'-';
+                *pos += 1;
+            }
+        }
+        let int_part = abs_val as u8;
+        let frac_part = ((abs_val - int_part as f32) * 100.0) as u8;
+        if *pos < 256 {
+            buf[*pos] = b'0' + int_part;
+            *pos += 1;
+        }
+        if *pos < 256 {
+            buf[*pos] = b'.';
+            *pos += 1;
+        }
+        if *pos < 256 {
+            buf[*pos] = b'0' + frac_part / 10;
+            *pos += 1;
+        }
+        if *pos < 256 {
+            buf[*pos] = b'0' + frac_part % 10;
+            *pos += 1;
+        }
+    }
+
+    write_bytes(&mut buf, &mut pos, b"NM State: DA=");
+    write_fp(&mut buf, &mut pos, nm.dopamine);
+    write_bytes(&mut buf, &mut pos, b"(");
+    let da_v = nm.dopamine.to_f32();
+    if da_v > 0.7 {
+        write_bytes(&mut buf, &mut pos, b"reward-seeking");
+    } else if da_v < 0.3 {
+        write_bytes(&mut buf, &mut pos, b"aversion");
+    } else {
+        write_bytes(&mut buf, &mut pos, b"neutral");
+    }
+    write_bytes(&mut buf, &mut pos, b") ");
+
+    write_bytes(&mut buf, &mut pos, b"5HT=");
+    write_fp(&mut buf, &mut pos, nm.serotonin);
+    write_bytes(&mut buf, &mut pos, b"(");
+    let ht_v = nm.serotonin.to_f32();
+    if ht_v > 0.7 {
+        write_bytes(&mut buf, &mut pos, b"risk-averse");
+    } else if ht_v < 0.3 {
+        write_bytes(&mut buf, &mut pos, b"impulsive");
+    } else {
+        write_bytes(&mut buf, &mut pos, b"balanced");
+    }
+    write_bytes(&mut buf, &mut pos, b") ");
+
+    write_bytes(&mut buf, &mut pos, b"NA=");
+    write_fp(&mut buf, &mut pos, nm.noradrenaline);
+    write_bytes(&mut buf, &mut pos, b"(");
+    let na_v = nm.noradrenaline.to_f32();
+    if na_v > 0.7 {
+        write_bytes(&mut buf, &mut pos, b"alert");
+    } else if na_v < 0.3 {
+        write_bytes(&mut buf, &mut pos, b"drowsy");
+    } else {
+        write_bytes(&mut buf, &mut pos, b"attentive");
+    }
+    write_bytes(&mut buf, &mut pos, b") ");
+
+    write_bytes(&mut buf, &mut pos, b"ACh=");
+    write_fp(&mut buf, &mut pos, nm.acetylcholine);
+    write_bytes(&mut buf, &mut pos, b"(");
+    let ach_v = nm.acetylcholine.to_f32();
+    if ach_v > 0.7 {
+        write_bytes(&mut buf, &mut pos, b"focused");
+    } else if ach_v < 0.3 {
+        write_bytes(&mut buf, &mut pos, b"diffuse");
+    } else {
+        write_bytes(&mut buf, &mut pos, b"engaged");
+    }
+    write_bytes(&mut buf, &mut pos, b")");
+
+    buf
 }
 
 #[cfg(test)]
@@ -699,8 +948,18 @@ mod tests {
     #[test]
     fn test_export_graphviz_dot() {
         let mut g = CausalGraph::new();
-        g.add_edge(NeuronId::new(0), NeuronId::new(1), FixedPoint::from_f32(0.5), 2);
-        g.add_edge(NeuronId::new(1), NeuronId::new(2), FixedPoint::from_f32(0.8), 1);
+        g.add_edge(
+            NeuronId::new(0),
+            NeuronId::new(1),
+            FixedPoint::from_f32(0.5),
+            2,
+        );
+        g.add_edge(
+            NeuronId::new(1),
+            NeuronId::new(2),
+            FixedPoint::from_f32(0.8),
+            1,
+        );
         let dot = g.export_graphviz_dot();
         let text = dot.as_str();
         assert!(text.starts_with("digraph"));
@@ -708,5 +967,31 @@ mod tests {
         assert!(text.contains("n0001 -> n0002"));
         assert!(text.contains("}"));
         assert!(text.len() > 20);
+    }
+
+    #[test]
+    fn test_decision_explanation_format() {
+        let mut g = CausalGraph::new();
+        g.add_edge(
+            NeuronId::new(4),
+            NeuronId::new(12),
+            FixedPoint::from_f32(0.92),
+            1,
+        );
+        let mut desc = [0u8; 32];
+        desc[..12].copy_from_slice(b"sensor_front");
+        g.add_feature_attribution(0, FixedPoint::from_f32(0.45), &desc);
+
+        let out = g.format_decision_explanation(42, b"AVOID");
+        let text = core::str::from_utf8(&out).unwrap_or("");
+        assert!(text.contains("Decision: AVOID"));
+        assert!(text.contains("sensor_front"));
+    }
+
+    #[test]
+    fn test_neuromodulator_context() {
+        let out = format_neuromodulator_context();
+        let text = core::str::from_utf8(&out).unwrap_or("");
+        assert!(text.contains("NM State: DA="));
     }
 }

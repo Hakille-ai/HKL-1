@@ -13,6 +13,13 @@ pub struct TraceEvent {
     pub membrane_potential: i16,
 }
 
+#[derive(Clone, Copy, Default)]
+pub struct BurstEvent {
+    pub neuron_id: u16,
+    pub start_time: u32,
+    pub spike_count: u8,
+}
+
 pub struct SpikeTraceLogger {
     pub buffer: [MaybeUninit<TraceEvent>; crate::SPIKE_TRACE_BUFFER],
     pub head: u16,
@@ -135,6 +142,107 @@ impl SpikeTraceLogger {
 
     pub fn is_empty(&self) -> bool {
         !self.has_data()
+    }
+
+    pub fn detect_bursts(&self) -> ([BurstEvent; 64], usize) {
+        let mut bursts = [BurstEvent::default(); 64];
+        let mut burst_count = 0;
+
+        #[derive(Clone, Copy)]
+        struct ActiveBurst {
+            neuron_id: u16,
+            start_time: u32,
+            count: u8,
+            completed: bool,
+        }
+        let mut active = [ActiveBurst {
+            neuron_id: 0,
+            start_time: 0,
+            count: 0,
+            completed: false,
+        }; 64];
+        let mut active_count = 0;
+
+        let trace = self.export_trace();
+        for ev in trace {
+            let nid = ev.neuron_id.index();
+            let t = ev.timestamp;
+
+            let mut found = false;
+            for i in 0..active_count {
+                if active[i].neuron_id == nid as u16 && !active[i].completed {
+                    if t.saturating_sub(active[i].start_time) < 5 {
+                        active[i].count += 1;
+                        found = true;
+                    } else {
+                        if active[i].count >= 3 {
+                            active[i].completed = true;
+                        } else {
+                            active[i].start_time = t;
+                            active[i].count = 1;
+                            found = true;
+                        }
+                    }
+                    break;
+                }
+            }
+            if !found && active_count < 64 {
+                active[active_count] = ActiveBurst {
+                    neuron_id: nid as u16,
+                    start_time: t,
+                    count: 1,
+                    completed: false,
+                };
+                active_count += 1;
+            }
+        }
+
+        for i in 0..active_count {
+            if active[i].count >= 3 && burst_count < 64 {
+                bursts[burst_count] = BurstEvent {
+                    neuron_id: active[i].neuron_id,
+                    start_time: active[i].start_time,
+                    spike_count: active[i].count,
+                };
+                burst_count += 1;
+            }
+        }
+        (bursts, burst_count)
+    }
+
+    pub fn compute_firing_rates(&self) -> [u16; 256] {
+        let mut rates = [0u16; 256];
+        let trace = self.export_trace();
+        if trace.is_empty() {
+            return rates;
+        }
+
+        let start_t = trace[0].timestamp;
+        let end_t = trace[trace.len() - 1].timestamp;
+        let window = end_t.saturating_sub(start_t).max(1);
+
+        for ev in trace {
+            let idx = ev.neuron_id.index() as usize;
+            if idx < 256 {
+                rates[idx] = rates[idx].saturating_add(1);
+            }
+        }
+        for i in 0..256 {
+            let r = (rates[i] as u32 * 1000) / window;
+            rates[i] = r.min(u16::MAX as u32) as u16;
+        }
+        rates
+    }
+
+    pub fn export_trace_filtered(&self, layer_filter: u8) -> usize {
+        let mut count = 0;
+        let trace = self.export_trace();
+        for ev in trace {
+            if ev.layer == layer_filter {
+                count += 1;
+            }
+        }
+        count
     }
 }
 
@@ -319,5 +427,49 @@ mod tests {
         let trace = log.export_trace();
         let expected = (0.5 * 256.0) as i16;
         assert_eq!(trace[0].membrane_potential, expected);
+    }
+
+    #[test]
+    fn test_burst_detection() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        let nid = test_neuron_id(1);
+        log.log_spike(nid, 10, 0, false);
+        log.log_spike(nid, 11, 0, false);
+        log.log_spike(nid, 12, 0, false);
+        log.log_spike(nid, 13, 0, false);
+        log.log_spike(nid, 14, 0, false);
+
+        let (bursts, count) = log.detect_bursts();
+        assert_eq!(count, 1);
+        assert_eq!(bursts[0].neuron_id, 1);
+        assert_eq!(bursts[0].spike_count, 5);
+        assert_eq!(bursts[0].start_time, 10);
+    }
+
+    #[test]
+    fn test_firing_rate_computation() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        let nid = test_neuron_id(2);
+        for i in 0..10 {
+            log.log_spike(nid, i * 10, 0, false);
+        }
+        let rates = log.compute_firing_rates();
+        assert!(rates[2] > 100 && rates[2] < 120);
+    }
+
+    #[test]
+    fn test_filtered_export() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        log.log_spike(test_neuron_id(0), 10, 1, false);
+        log.log_spike(test_neuron_id(1), 11, 2, false);
+        log.log_spike(test_neuron_id(2), 12, 1, false);
+
+        let count_l1 = log.export_trace_filtered(1);
+        let count_l2 = log.export_trace_filtered(2);
+        assert_eq!(count_l1, 2);
+        assert_eq!(count_l2, 1);
     }
 }

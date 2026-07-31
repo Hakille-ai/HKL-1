@@ -7,7 +7,7 @@ use crate::core::memory::NeuronId;
 use crate::nlp::spike_decoder::SpikeTextDecoder;
 use crate::nlp::spike_token::SpikeTextEncoder;
 use crate::nlp::symbolic_graph::SymbolicKnowledgeGraph;
-use crate::nlp::verbalizer::{CognitiveStateSummary, NeuromodulatedVerbalizer, MAX_VERBAL_LEN};
+use crate::nlp::verbalizer::{CognitiveStateSummary, MAX_VERBAL_LEN, NeuromodulatedVerbalizer};
 
 /// Unified NLP Dialogue Engine
 pub struct DialogueEngine {
@@ -46,7 +46,8 @@ impl DialogueEngine {
 
         // 3. Neuro-Symbolic Activation: add prompt words as concepts & propagate activation
         let concept_id = self.knowledge_graph.add_concept(prompt);
-        self.knowledge_graph.activate_and_propagate(concept_id, FixedPoint::ONE);
+        self.knowledge_graph
+            .activate_and_propagate(concept_id, FixedPoint::ONE);
 
         // 4. Simulate Layer 4 motor potentials decoding
         let mut motor_potentials = [FixedPoint::ZERO; crate::nlp::spike_token::VOCAB_SIZE];
