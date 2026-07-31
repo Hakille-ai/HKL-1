@@ -123,8 +123,7 @@ impl RetinalEngine {
                 let delta_log = log_i - self.prev_log_frame[idx];
 
                 if delta_log.abs() > self.dvs_threshold {
-                    let neuron_idx =
-                        (self.base_neuron_id.index() as usize + idx) % crate::MAX_NEURONS;
+                    let neuron_idx = (self.base_neuron_id.index() + idx) % crate::MAX_NEURONS;
                     let spike = EncodedSpike {
                         neuron_id: NeuronId::new(neuron_idx as u16),
                         intensity: delta_log.abs(),

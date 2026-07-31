@@ -146,7 +146,7 @@ impl Hippocampus {
         for (i, cell) in self.dg.iter().enumerate() {
             activations[i] = (cell.activity, i);
         }
-        activations.sort_by(|a, b| b.0.cmp(&a.0));
+        activations.sort_by_key(|a| core::cmp::Reverse(a.0));
         for &(_, idx) in activations.iter().take(K_WTA) {
             self.dg[idx].winning = true;
         }

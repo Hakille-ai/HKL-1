@@ -2,6 +2,8 @@
 //! homeostatic scaling, and neurogenesis support. All memory is pre-allocated
 //! at compile time with zero dynamic allocation.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use crate::core::math::FixedPoint;
 use core::mem::MaybeUninit;
 use core::ptr::NonNull;

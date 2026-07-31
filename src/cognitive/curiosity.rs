@@ -213,7 +213,7 @@ impl CuriosityEngine {
         }
         self.habituation.decay();
 
-        if time % 50 == 0 && self.thermal_noise_active {
+        if time.is_multiple_of(50) && self.thermal_noise_active {
             self.inject_thermal_noise(net, time);
         }
 

@@ -34,7 +34,7 @@ pub struct LIFNeuron {
 
 impl LIFNeuron {
     pub fn new(id: NeuronId, neuron_type: NeuronType) -> Self {
-        let (tau_m, v_th, v_reset, refractory, adaptive) = match neuron_type {
+        let (tau_m, v_th, v_reset, refractory, _adaptive) = match neuron_type {
             NeuronType::LIF => (
                 FixedPoint::from_f32(20.0), // 20ms
                 FixedPoint::from_f32(1.0),
@@ -89,11 +89,7 @@ impl LIFNeuron {
             v_mem: FixedPoint::ZERO,
             refractory_remaining: 0,
             last_spike_time: 0,
-            adaptive_th: if adaptive {
-                FixedPoint::ZERO
-            } else {
-                FixedPoint::ZERO
-            },
+            adaptive_th: FixedPoint::ZERO,
             adaptation_tau: FixedPoint::from_f32(100.0),
             noradrenaline_sensitivity: FixedPoint::from_f32(1.0),
             serotonin_sensitivity: FixedPoint::from_f32(1.0),
@@ -134,7 +130,7 @@ impl LIFNeuron {
         // Adaptive threshold (ALIF)
         if self.adaptation_tau.to_bits() != 0 {
             let adaptation_decay = FixedPoint::ONE - FixedPoint::ONE / self.adaptation_tau;
-            self.adaptive_th = self.adaptive_th * adaptation_decay;
+            self.adaptive_th *= adaptation_decay;
             if state.last_spike_time == time - 1 {
                 self.adaptive_th += FixedPoint::from_f32(0.1);
             }

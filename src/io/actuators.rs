@@ -155,7 +155,7 @@ impl GpioPin {
     pub fn read(&self) -> bool {
         #[cfg(any(feature = "std", test))]
         {
-            return false;
+            false
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {

@@ -7,3 +7,5 @@ pub mod math;
 pub mod memory;
 pub mod text;
 pub mod time;
+
+pub use atomic::FetchAtomic;

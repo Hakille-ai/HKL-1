@@ -248,7 +248,7 @@ pub mod hw {
         #[cfg(any(feature = "std", test))]
         {
             let _ = scale;
-            return true;
+            true
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -352,7 +352,7 @@ pub mod hw {
         #[cfg(any(feature = "std", test))]
         {
             let _ = idx;
-            return 0;
+            0
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -452,8 +452,8 @@ impl PowerManager {
             (self.battery_level + net_energy).clamp(FixedPoint::ZERO, FixedPoint::ONE);
 
         // Accumulate totals
-        self.total_energy_consumed = self.total_energy_consumed + self.consumption_rate;
-        self.total_energy_harvested = self.total_energy_harvested + self.energy_harvesting_rate;
+        self.total_energy_consumed += self.consumption_rate;
+        self.total_energy_harvested += self.energy_harvesting_rate;
 
         // Determine mode
         if self.battery_level < FixedPoint::from_f32(0.1) {
@@ -726,7 +726,7 @@ impl PowerManager {
                     d if d == PowerDomain::Radio as u8 => FixedPoint::from_f32(0.15),
                     _ => FixedPoint::from_f32(0.05),
                 };
-                total = total + base * domain.voltage_scale;
+                total += base * domain.voltage_scale;
             }
         }
         total * self.sleep_state.power_ratio()
@@ -745,9 +745,9 @@ impl PowerManager {
         // Perturb duty cycle
         let perturbation = FixedPoint::from_f32(0.01);
         if self.mppt_duty_cycle > perturbation {
-            self.mppt_duty_cycle = self.mppt_duty_cycle - perturbation;
+            self.mppt_duty_cycle -= perturbation;
         } else {
-            self.mppt_duty_cycle = self.mppt_duty_cycle + perturbation;
+            self.mppt_duty_cycle += perturbation;
         }
         self.mppt_duty_cycle = self
             .mppt_duty_cycle

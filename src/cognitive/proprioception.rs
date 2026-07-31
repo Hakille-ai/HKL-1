@@ -56,12 +56,7 @@ impl Proprioception {
     }
 
     fn find_body_model_entry(&self, motor_id: u8) -> Option<usize> {
-        for i in 0..self.body_model_count as usize {
-            if self.body_model[i].motor_id == motor_id {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.body_model_count as usize).find(|&i| self.body_model[i].motor_id == motor_id)
     }
 
     pub fn record_efference(&mut self, motor_id: u8, predicted: FixedPoint) {

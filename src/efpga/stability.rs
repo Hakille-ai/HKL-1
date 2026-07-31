@@ -57,19 +57,20 @@ impl SubnetworkStabilityAnalyzer {
         let mut total_var = FixedPoint::ZERO;
 
         for &(src, tgt, w, delay, var, age) in synapse_data {
-            if var <= self.variance_threshold && age >= self.min_age_cycles {
-                if subnetwork.count < MAX_STABLE_SYNAPSE_CAPACITY {
-                    subnetwork.synapses[subnetwork.count] = Some(FrozenSynapse {
-                        source_id: src,
-                        target_id: tgt,
-                        weight: w,
-                        delay_us: delay,
-                        variance: var,
-                        age_cycles: age,
-                    });
-                    subnetwork.count += 1;
-                    total_var += var;
-                }
+            if var <= self.variance_threshold
+                && age >= self.min_age_cycles
+                && subnetwork.count < MAX_STABLE_SYNAPSE_CAPACITY
+            {
+                subnetwork.synapses[subnetwork.count] = Some(FrozenSynapse {
+                    source_id: src,
+                    target_id: tgt,
+                    weight: w,
+                    delay_us: delay,
+                    variance: var,
+                    age_cycles: age,
+                });
+                subnetwork.count += 1;
+                total_var += var;
             }
         }
 

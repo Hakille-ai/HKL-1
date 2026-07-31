@@ -3,6 +3,8 @@
 //! stochastic noise sources (PRNG, hardware TRNG, thermal) for curiosity
 //! and dreaming.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use crate::core::math::{FixedPoint, XorShift64Star};
 use core::sync::atomic::{AtomicU32, Ordering};
 
@@ -87,7 +89,7 @@ impl EntropyMonitor {
         for &count in &self.weight_histogram {
             if count > 0 {
                 let p = FixedPoint::from_int(count as i32).div(total);
-                entropy = entropy - p * p.ln();
+                entropy -= p * p.ln();
             }
         }
 
@@ -281,7 +283,7 @@ impl CognitiveEntropy {
         for &count in &self.action_counts {
             if count > 0 {
                 let p = FixedPoint::from_int(count as i32).div(total);
-                entropy = entropy - p * p.ln();
+                entropy -= p * p.ln();
             }
         }
         self.action_entropy = entropy;
@@ -316,7 +318,7 @@ impl CognitiveEntropy {
         for &count in &hist {
             if count > 0 {
                 let p = FixedPoint::from_int(count as i32).div(total);
-                entropy = entropy - p * p.ln();
+                entropy -= p * p.ln();
             }
         }
         self.prediction_entropy = entropy;

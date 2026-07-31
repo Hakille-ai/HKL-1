@@ -134,7 +134,7 @@ impl FederatedLearning {
             };
             let score = (capability as u32) * 10
                 + (reliability.to_f32() * 100.0) as u32
-                + self.election_round.wrapping_sub(1) as u32 % 100;
+                + self.election_round.wrapping_sub(1) % 100;
             if score > best_score {
                 best_score = score;
                 best_id = Some(node_id);

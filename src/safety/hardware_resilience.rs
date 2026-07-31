@@ -214,22 +214,17 @@ impl MemoryDiagnostics {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SenescenceStage {
+    #[default]
     Healthy,
     Aging,
     Degraded,
     EndOfLife,
 }
 
-impl Default for SenescenceStage {
-    fn default() -> Self {
-        Self::Healthy
-    }
-}
-
 pub fn run_diagnostics(now: u32) {
-    if now % 1000 != 0 {
+    if !now.is_multiple_of(1000) {
         return;
     }
     let count = NEURON_COUNT.load(Ordering::Relaxed);

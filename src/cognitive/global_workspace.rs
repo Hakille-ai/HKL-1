@@ -188,7 +188,7 @@ impl GlobalWorkspace {
             + candidate.novelty * FixedPoint::from_f32(0.18)
             + candidate.expected_reward * FixedPoint::from_f32(0.17);
 
-        score = score - candidate.energy_cost * FixedPoint::from_f32(0.10);
+        score -= candidate.energy_cost * FixedPoint::from_f32(0.10);
 
         if candidate.specialist == SpecialistId::Safety {
             score += self.safety_bias + candidate.risk * FixedPoint::from_f32(0.30);

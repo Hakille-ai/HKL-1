@@ -56,7 +56,7 @@ pub fn update() {
         for i in 0..count as u16 {
             let spikes = h.spike_counts[i as usize];
             let rate = FixedPoint::from_int(spikes as i32) / FixedPoint::from_int(1000);
-            total_rate = total_rate + rate;
+            total_rate += rate;
             if spikes > 0 {
                 active += 1;
             }
@@ -73,7 +73,7 @@ pub fn update() {
             let err = h.target_rate - h.actual_firing_rate;
             h.error = err;
             let delta = err * h.adaptation_rate;
-            h.scaling_factor = h.scaling_factor + delta;
+            h.scaling_factor += delta;
             h.scaling_factor = h
                 .scaling_factor
                 .clamp(FixedPoint::from_f32(0.1), FixedPoint::from_f32(10.0));
@@ -97,7 +97,7 @@ pub fn compensatory_scaling(damaged_neurons: &[NeuronId]) {
             let state = neuron_state_ref(id);
             if state.layer == layer && id != damaged_id {
                 let s_state = neuron_state(id);
-                s_state.threshold = s_state.threshold * FixedPoint::from_f32(1.2);
+                s_state.threshold *= FixedPoint::from_f32(1.2);
             }
         }
     }

@@ -187,11 +187,7 @@ impl TemporalCognition {
 
             let activation = if elapsed >= lower && elapsed <= upper {
                 // Peak at exact offset, Gaussian falloff
-                let center_dist = if elapsed > offset {
-                    elapsed - offset
-                } else {
-                    offset - elapsed
-                };
+                let center_dist = elapsed.abs_diff(offset);
                 let gauss = 1.0 - (center_dist as f32) / (window as f32).max(1.0);
                 FixedPoint::from_f32(gauss.max(0.0))
             } else if elapsed > upper {

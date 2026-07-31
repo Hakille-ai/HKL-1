@@ -198,13 +198,7 @@ impl AttentionFocus {
         let na =
             unsafe { &crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS }.noradrenaline;
         let interval = (200.0 - na.to_f32() * 150.0) as u32;
-        if interval < 50 {
-            50
-        } else if interval > 400 {
-            400
-        } else {
-            interval
-        }
+        interval.clamp(50, 400)
     }
 }
 
@@ -252,7 +246,7 @@ impl AttentionRouter {
     ) {
         self.update_counter += 1;
 
-        if self.update_counter % 5 == 0 {
+        if self.update_counter.is_multiple_of(5) {
             self.saliency_map
                 .recompute_bottom_up(prediction_error, novelty, self.goal_bias);
         }
@@ -269,7 +263,9 @@ impl AttentionRouter {
 
         let shift_interval = self.focus.focus_shift_interval();
 
-        if self.update_counter % shift_interval == 0 && self.focus.focus_type != FocusType::None {
+        if self.update_counter.is_multiple_of(shift_interval)
+            && self.focus.focus_type != FocusType::None
+        {
             let mut use_layer = saliency_target;
             if let Some(action) = selected_action {
                 let goal_layer = Self::map_action_to_layer(action);
@@ -305,10 +301,10 @@ impl AttentionRouter {
             let layer = state.layer;
             if focus.is_attended(id, layer) {
                 let boost = neuron_state(id);
-                boost.membrane_potential = boost.membrane_potential * dynamic_gain;
+                boost.membrane_potential *= dynamic_gain;
             } else {
                 let suppress = neuron_state(id);
-                suppress.membrane_potential = suppress.membrane_potential * dynamic_suppression;
+                suppress.membrane_potential *= dynamic_suppression;
             }
         }
 
@@ -334,8 +330,7 @@ impl AttentionRouter {
                 unsafe {
                     let neuron = crate::core::memory::NEURON_ARRAY[idx as usize].assume_init_mut();
                     if neuron.layer == l as u8 {
-                        neuron.membrane_potential =
-                            neuron.membrane_potential * FixedPoint::from_f32(0.7);
+                        neuron.membrane_potential *= FixedPoint::from_f32(0.7);
                     }
                 }
             }

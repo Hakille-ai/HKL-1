@@ -9,6 +9,13 @@
 #![allow(clippy::new_without_default)]
 #![allow(clippy::empty_line_after_doc_comments)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::manual_memcpy)]
+#![allow(clippy::assign_op_pattern)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::manual_is_multiple_of)]
+#![allow(clippy::needless_return)]
+#![allow(clippy::unnecessary_cast)]
 #[cfg(any(feature = "alloc", feature = "std"))]
 extern crate alloc;
 #[cfg(feature = "std")]

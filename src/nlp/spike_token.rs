@@ -73,9 +73,8 @@ impl SpikeTextEncoder {
     /// Encode input text string into temporal spike trains with position phase delays
     pub fn encode_text(&mut self, text: &[u8], timestamp: u32) -> u32 {
         self.event_count = 0;
-        let mut pos = 0u32;
-
-        for &c in text {
+        for (pos, &c) in text.iter().enumerate() {
+            let pos = pos as u32;
             if c == 0 {
                 break;
             }
@@ -95,7 +94,6 @@ impl SpikeTextEncoder {
             if ingest_spike(spike) {
                 self.event_count += 1;
             }
-            pos += 1;
         }
 
         self.event_count

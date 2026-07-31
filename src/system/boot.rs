@@ -234,7 +234,7 @@ impl BootSequence {
             check_emergencies(net);
 
             // Handle telemetry
-            if net.time % 100 == 0 {
+            if net.time.is_multiple_of(100) {
                 handle_telemetry();
             }
 
@@ -242,7 +242,7 @@ impl BootSequence {
             net.energy_level = power_manager().battery_level;
 
             // Enter low-power idle based on network activity
-            let work_done = net.time % 10 == 0;
+            let work_done = net.time.is_multiple_of(10);
             power_manager().idle_if_possible(work_done);
         }
     }
@@ -256,7 +256,7 @@ fn check_emergencies(net: &mut crate::snn::network::Network) {
     }
 
     // Section 31: Memory degradation check
-    let count = NEURON_COUNT.load(Ordering::Relaxed) as usize;
+    let count = NEURON_COUNT.load(Ordering::Relaxed);
     if count == 0 || count > crate::MAX_NEURONS {
         net.energy_level = FixedPoint::ZERO; // Force energy-critical shutdown
     }

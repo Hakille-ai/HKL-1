@@ -443,7 +443,7 @@ impl EpisodicMemory {
                 continue;
             }
             let retention = self.short_term[i].retention(now, self.st_half_life);
-            self.short_term[i].significance = self.short_term[i].significance * retention;
+            self.short_term[i].significance *= retention;
             // Prune if significance drops to near zero
             if self.short_term[i].significance < FixedPoint::from_f32(0.01) {
                 self.short_term[i].valid = false;
@@ -453,7 +453,7 @@ impl EpisodicMemory {
         // Decay long-term
         for i in 0..self.lt_count {
             let retention = self.long_term[i].retention(now, self.lt_half_life);
-            self.long_term[i].significance = self.long_term[i].significance * retention;
+            self.long_term[i].significance *= retention;
         }
     }
 
@@ -562,14 +562,14 @@ impl EpisodicMemory {
             }
         }
 
-        if best_dist <= MAX_DIST {
-            if let Some(mut trace) = best {
-                trace.last_access = now;
-                self.last_recall[self.recall_idx % 16] = trace.state_hash;
-                self.recall_idx += 1;
-                self.total_recalled += 1;
-                return Some(trace);
-            }
+        if best_dist <= MAX_DIST
+            && let Some(mut trace) = best
+        {
+            trace.last_access = now;
+            self.last_recall[self.recall_idx % 16] = trace.state_hash;
+            self.recall_idx += 1;
+            self.total_recalled += 1;
+            return Some(trace);
         }
         None
     }
@@ -735,9 +735,8 @@ impl EpisodicMemory {
         let dist = (dx * dx + dy * dy).sqrt();
         let phase = self.theta_phase_frac();
         // Precession: theta phase shifts proportional to distance from field center
-        let precession =
-            (phase + dist * FixedPoint::from_f32(2.0)).clamp(FixedPoint::ZERO, FixedPoint::ONE);
-        precession
+
+        (phase + dist * FixedPoint::from_f32(2.0)).clamp(FixedPoint::ZERO, FixedPoint::ONE)
     }
 
     /// Encode current spatial context into memory state hash

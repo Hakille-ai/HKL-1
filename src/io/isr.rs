@@ -2,6 +2,8 @@
 //! NVIC (ARM Cortex-M7) and CLINT/PLIC (RISC-V) register definitions,
 //! ISR handler bodies, and interrupt configuration.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 #[cfg(any(test, target_arch = "arm"))]

@@ -1,4 +1,6 @@
 //! Structural plasticity through neurogenesis. Creates and prunes synapses dynamically.
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use crate::core::math::{FixedPoint, Weight, XorShift64Star};
 use crate::core::memory::{MAX_NEURONS, NEURON_COUNT, NeuronFlags, NeuronId, SynapseId};
 

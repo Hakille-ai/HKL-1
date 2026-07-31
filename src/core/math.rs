@@ -235,7 +235,7 @@ impl FixedPoint {
     pub fn pow(self, exp: u32) -> Self {
         let mut result = Self::ONE;
         for _ in 0..exp {
-            result = result * self;
+            result *= self;
         }
         result
     }
@@ -698,7 +698,7 @@ impl XorShift64Star {
         // This avoids needing exp/ln/cos/sqrt in no_std
         let mut sum = -FixedPoint::from_int(6);
         for _ in 0..12 {
-            sum = sum + self.next_fixed();
+            sum += self.next_fixed();
         }
         sum
     }

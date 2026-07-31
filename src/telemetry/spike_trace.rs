@@ -222,7 +222,7 @@ impl SpikeTraceLogger {
         let window = end_t.saturating_sub(start_t).max(1);
 
         for ev in trace {
-            let idx = ev.neuron_id.index() as usize;
+            let idx = ev.neuron_id.index();
             if idx < 256 {
                 rates[idx] = rates[idx].saturating_add(1);
             }

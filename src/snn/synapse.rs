@@ -2,6 +2,8 @@
 //! reward-modulated learning. Supports homeostatic scaling, pruning of silent
 //! synapses, and neuromodulator-gated plasticity.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use crate::core::math::{FixedPoint, Weight, XorShift64Star};
 use crate::core::memory::{MAX_SYNAPSES, NeuronId, SynapseId};
 use crate::snn::neuron::Neuromodulators;
@@ -71,7 +73,7 @@ impl Synapse {
         let dt = (time - self.pre_trace_time(time)) as i32;
         if dt > 0 {
             let decay = FixedPoint::exp(-FixedPoint::from_int(dt) / self.tau_plus);
-            self.pre_trace = self.pre_trace * decay;
+            self.pre_trace *= decay;
         }
         self.pre_trace += FixedPoint::ONE;
 
@@ -99,7 +101,7 @@ impl Synapse {
         let dt = (time - self.post_trace_time(time)) as i32;
         if dt > 0 {
             let decay = FixedPoint::exp(-FixedPoint::from_int(dt) / self.tau_minus);
-            self.post_trace = self.post_trace * decay;
+            self.post_trace *= decay;
         }
         self.post_trace += FixedPoint::ONE;
 
@@ -263,20 +265,18 @@ fn init_reflex_arcs() {
         let id = NeuronId::new(i);
         let state = neuron_state_ref(id);
         match state.layer {
-            6 => {
+            6
                 // Layer 6 = reflex
-                if reflex_count < 16 {
+                if reflex_count < 16 => {
                     reflex_ids[reflex_count as usize] = id;
                     reflex_count += 1;
                 }
-            }
-            4 => {
+            4
                 // Layer 4 = motor/actuator
-                if motor_count < 16 {
+                if motor_count < 16 => {
                     motor_ids[motor_count as usize] = id;
                     motor_count += 1;
                 }
-            }
             _ => {}
         }
     }
@@ -284,11 +284,12 @@ fn init_reflex_arcs() {
     for i in 0..reflex_count.min(motor_count) {
         let r_id = reflex_ids[i as usize];
         let m_id = motor_ids[i as usize];
-        if r_id != NeuronId::INVALID && m_id != NeuronId::INVALID {
-            if let Some(syn_id) = create_synapse(r_id, m_id, Weight::from_f32(0.8), 1) {
-                let s = synapse(syn_id);
-                s.plasticity_enabled = false;
-            }
+        if r_id != NeuronId::INVALID
+            && m_id != NeuronId::INVALID
+            && let Some(syn_id) = create_synapse(r_id, m_id, Weight::from_f32(0.8), 1)
+        {
+            let s = synapse(syn_id);
+            s.plasticity_enabled = false;
         }
     }
     // Connect first sensor (L0) → first reflex

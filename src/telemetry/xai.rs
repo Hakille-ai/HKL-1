@@ -185,7 +185,7 @@ impl CausalGraph {
             let mut best: Option<(usize, FixedPoint)> = None;
             for i in 0..self.edge_count as usize {
                 let e = &self.edges[i];
-                if e.post == current && !visited[e.pre.index() as usize] {
+                if e.post == current && !visited[e.pre.index()] {
                     match best {
                         None => best = Some((i, e.confidence)),
                         Some((_, best_conf)) if e.confidence > best_conf => {
@@ -197,7 +197,7 @@ impl CausalGraph {
             }
             if let Some((best_idx, conf)) = best {
                 let e = &self.edges[best_idx];
-                visited[current.index() as usize] = true;
+                visited[current.index()] = true;
                 let line = alloc::format!(
                     "  [L{}:{:03}] ──{:.2}──> [L{}:{:03}]",
                     e.layer_pair.0,
@@ -528,13 +528,14 @@ impl SpikeTraceAnalyzer {
         for window in trace.windows(3) {
             let a = window[0];
             let b = window[2];
-            if b.timestamp > a.timestamp && b.timestamp - a.timestamp < 10 {
-                if self.causality_count < 1024 {
-                    let pre_idx = a.neuron_id.index() as u16;
-                    let post_idx = b.neuron_id.index() as u16;
-                    self.causality_pairs[self.causality_count as usize] = (pre_idx, post_idx);
-                    self.causality_count += 1;
-                }
+            if b.timestamp > a.timestamp
+                && b.timestamp - a.timestamp < 10
+                && self.causality_count < 1024
+            {
+                let pre_idx = a.neuron_id.index() as u16;
+                let post_idx = b.neuron_id.index() as u16;
+                self.causality_pairs[self.causality_count as usize] = (pre_idx, post_idx);
+                self.causality_count += 1;
             }
         }
     }
@@ -590,11 +591,9 @@ pub fn format_neuromodulator_context() -> [u8; 256] {
     fn write_fp(buf: &mut [u8; 256], pos: &mut usize, f: FixedPoint) {
         let val = f.to_f32();
         let abs_val = if val < 0.0 { -val } else { val };
-        if val < 0.0 {
-            if *pos < 256 {
-                buf[*pos] = b'-';
-                *pos += 1;
-            }
+        if val < 0.0 && *pos < 256 {
+            buf[*pos] = b'-';
+            *pos += 1;
         }
         let int_part = abs_val as u8;
         let frac_part = ((abs_val - int_part as f32) * 100.0) as u8;

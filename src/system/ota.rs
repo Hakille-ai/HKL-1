@@ -14,7 +14,7 @@ pub mod flash_layout {
     pub const OTA_META_BASE: u32 = 0x0808_0000;
 
     /// OTA metadata offsets
-    pub const OTA_ACTIVE_BANK: *mut u32 = (OTA_META_BASE + 0x00) as *mut u32;
+    pub const OTA_ACTIVE_BANK: *mut u32 = OTA_META_BASE as *mut u32;
     pub const OTA_VERSION_A: *mut u32 = (OTA_META_BASE + 0x04) as *mut u32;
     pub const OTA_VERSION_B: *mut u32 = (OTA_META_BASE + 0x08) as *mut u32;
     pub const OTA_STATUS: *mut u32 = (OTA_META_BASE + 0x0C) as *mut u32;
@@ -76,7 +76,7 @@ impl FirmwareHeader {
     pub const MAGIC: [u8; 8] = *b"HKL1FW__";
 
     pub fn validate(&self) -> bool {
-        &self.magic == &Self::MAGIC
+        self.magic == Self::MAGIC
             && self.image_size > 0
             && self.image_size < flash_layout::BANK_SIZE - core::mem::size_of::<Self>() as u32
     }
@@ -545,6 +545,7 @@ impl OTAManager {
             #[cfg(not(target_arch = "riscv32"))]
             {
                 // Host or unknown arch — loop forever
+                #[allow(clippy::empty_loop)]
                 loop {}
             }
         }

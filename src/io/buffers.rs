@@ -148,6 +148,7 @@ pub struct EncodedSpike {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
+#[derive(Default)]
 pub enum Modality {
     Text = 0,
     Audio = 1,
@@ -155,13 +156,8 @@ pub enum Modality {
     Sensor = 3,
     Proprioception = 4,
     Internal = 5,
+    #[default]
     None = 255,
-}
-
-impl Default for Modality {
-    fn default() -> Self {
-        Modality::None
-    }
 }
 
 // Ring buffer instances for each modality

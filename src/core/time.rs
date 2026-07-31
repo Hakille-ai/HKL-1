@@ -2,6 +2,8 @@
 //! a time-warper for accelerated predictor simulation, and a five-scale
 //! temporal hierarchy buffer for multi-timescale processing.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Hardware timer register offsets (generic)
@@ -88,13 +90,13 @@ impl MetabolicClock {
             .fetch_add(self.cpu_freq_hz / 1000, Ordering::Relaxed);
 
         // Derive other frequencies
-        if t % 10 == 0 {
+        if t.is_multiple_of(10) {
             self.tick_100hz.fetch_add(1, Ordering::Relaxed);
         }
-        if t % 100 == 0 {
+        if t.is_multiple_of(100) {
             self.tick_10hz.fetch_add(1, Ordering::Relaxed);
         }
-        if t % 1000 == 0 {
+        if t.is_multiple_of(1000) {
             self.tick_1hz.fetch_add(1, Ordering::Relaxed);
             // Metabolic heartbeat - triggers pacemaker neurons
             crate::snn::network::trigger_metabolic_heartbeat();
@@ -290,19 +292,19 @@ impl TemporalHierarchy {
         self.ultrafast_buffer[uf as usize] = value;
 
         // Downsample to slower scales
-        if uf % 10 == 0 {
+        if uf.is_multiple_of(10) {
             let f = self.fast_pos.fetch_add(1, Ordering::Relaxed) % 1024;
             self.fast_buffer[f as usize] = value;
         }
-        if uf % 100 == 0 {
+        if uf.is_multiple_of(100) {
             let m = self.medium_pos.fetch_add(1, Ordering::Relaxed) % 1024;
             self.medium_buffer[m as usize] = value;
         }
-        if uf % 1000 == 0 {
+        if uf.is_multiple_of(1000) {
             let s = self.slow_pos.fetch_add(1, Ordering::Relaxed) % 1024;
             self.slow_buffer[s as usize] = value;
         }
-        if uf % 10000 == 0 {
+        if uf.is_multiple_of(10000) {
             let us = self.ultraslow_pos.fetch_add(1, Ordering::Relaxed) % 1024;
             self.ultraslow_buffer[us as usize] = value;
         }

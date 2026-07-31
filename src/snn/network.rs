@@ -4,6 +4,8 @@
 
 use crate::cognitive::curiosity::CURIOSITY_ENGINE;
 use crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS;
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use crate::core::math::FixedPoint;
 use crate::core::memory::{
     MAX_NEURONS, NEURON_COUNT, NeuronFlags, NeuronId, SynapseId, neuron_state, neuron_state_ref,
@@ -88,7 +90,7 @@ impl Network {
         let now = self.time;
 
         // Read physical sensors and push into ring buffers (every 10ms)
-        if now % 10 == 0 {
+        if now.is_multiple_of(10) {
             let sm = crate::io::sensors::sensor_manager();
             sm.read_all();
             sm.emit_sensor_spikes(now);
@@ -105,7 +107,7 @@ impl Network {
         self.process_sensory_input(now);
 
         // Update attention routing (every 5ms)
-        if now % 5 == 0 {
+        if now.is_multiple_of(5) {
             let cog_actor = crate::cognitive::actor::cognitive_actor();
             let selected_action = cog_actor.selected_action;
             let action_confidence = cog_actor.action_confidence;
@@ -132,7 +134,7 @@ impl Network {
         self.update_neuromodulators(now);
 
         // Apply actuator outputs (every 10ms)
-        if now % 10 == 0 {
+        if now.is_multiple_of(10) {
             let am = crate::io::actuators::actuator_manager();
             am.read_motor_outputs();
         }
@@ -141,7 +143,7 @@ impl Network {
         crate::cognitive::temporal::temporal_cognition().update();
 
         // Update curiosity engine (every 20ms)
-        if now % 20 == 0 {
+        if now.is_multiple_of(20) {
             unsafe {
                 let curiosity = &mut CURIOSITY_ENGINE;
                 curiosity.update(self);
@@ -159,7 +161,7 @@ impl Network {
         self.process_bio_modules(now);
 
         // Check for metabolic heartbeat (every 1000 steps)
-        if now % 1000 == 0 {
+        if now.is_multiple_of(1000) {
             self.heartbeat = true;
             self.metabolic_maintenance(now);
         } else {
@@ -167,7 +169,7 @@ impl Network {
         }
 
         // Energy-aware scaling (Section 11)
-        if now % 100 == 0 {
+        if now.is_multiple_of(100) {
             self.energy_adaption();
         }
 
@@ -180,12 +182,12 @@ impl Network {
         self.cycle_trigger(now);
 
         // Update statistics
-        if now % 1000 == 0 {
+        if now.is_multiple_of(1000) {
             self.update_statistics();
         }
 
         // Periodic causal graph update (every 500 steps)
-        if now % 500 == 0 {
+        if now.is_multiple_of(500) {
             crate::telemetry::xai::analyze_current_trace();
         }
     }
@@ -222,7 +224,7 @@ impl Network {
         thal.step(&sensory_proxy, attention, pred_error, now as u64);
 
         // 2. Striosome — dopamine-gated action selection (every 10ms)
-        if now % 10 == 0 {
+        if now.is_multiple_of(10) {
             let strio_input: [FixedPoint; 64] = {
                 let mut buf = [FixedPoint::ZERO; 64];
                 for (i, b) in buf.iter_mut().enumerate() {
@@ -240,7 +242,7 @@ impl Network {
         }
 
         // 3. Hippocampus — memory consolidation (every 50ms)
-        if now % 50 == 0 {
+        if now.is_multiple_of(50) {
             // Inject spatial context from episodic memory into hippocampus input
             let mut hipp_input: [FixedPoint; 256] = {
                 let mut buf = [FixedPoint::ZERO; 256];
@@ -271,7 +273,7 @@ impl Network {
         }
 
         // 4. Astrocytes — glial modulation (every 100ms)
-        if now % 100 == 0 {
+        if now.is_multiple_of(100) {
             let astro_input: [FixedPoint; 64] = {
                 let mut buf = [FixedPoint::ZERO; 64];
                 for (i, b) in buf.iter_mut().enumerate() {
@@ -289,7 +291,7 @@ impl Network {
         }
 
         // 5. Cerebellum — motor refinement (every 20ms)
-        if now % 20 == 0 {
+        if now.is_multiple_of(20) {
             let cb_input: [FixedPoint; 10] = {
                 let mut buf = [FixedPoint::ZERO; 10];
                 for (i, b) in buf.iter_mut().enumerate() {
@@ -382,12 +384,12 @@ impl Network {
         if self.warp_active || self.cycle_active {
             return;
         }
-        if now % 10000 == 0 || self.cycle_cooldown == 0 {
+        if now.is_multiple_of(10000) || self.cycle_cooldown == 0 {
             let curiosity = unsafe { CURIOSITY_ENGINE.curiosity_level };
             let pred_error = self.predictor.mean_prediction_error;
             let should_cycle = curiosity > FixedPoint::from_f32(0.3)
                 || pred_error > FixedPoint::from_f32(0.15)
-                || (now % 30000 == 0);
+                || now.is_multiple_of(30000);
             if should_cycle && !self.cycle_active && !self.actor.output_inhibited {
                 // Build state snapshot for TD learning
                 let count = NEURON_COUNT.load(Ordering::Relaxed);
@@ -436,7 +438,7 @@ impl Network {
         {
             // Inject current into target neuron
             let state = neuron_state(neuron_id);
-            state.membrane_potential = state.membrane_potential + FixedPoint::from_f32(1.0);
+            state.membrane_potential += FixedPoint::from_f32(1.0);
         }
     }
 
@@ -484,7 +486,7 @@ impl Network {
         self.time += 1;
         let now = self.time;
 
-        if now % 10 == 0 {
+        if now.is_multiple_of(10) {
             let sm = crate::io::sensors::sensor_manager();
             sm.read_all();
             sm.emit_sensor_spikes(now);
@@ -497,7 +499,7 @@ impl Network {
         };
         self.process_sensory_input(now);
 
-        if now % 5 == 0 {
+        if now.is_multiple_of(5) {
             let cog_actor = crate::cognitive::actor::cognitive_actor();
             let selected_action = cog_actor.selected_action;
             let action_confidence = cog_actor.action_confidence;
@@ -519,14 +521,14 @@ impl Network {
 
         self.update_neuromodulators(now);
 
-        if now % 10 == 0 {
+        if now.is_multiple_of(10) {
             let am = crate::io::actuators::actuator_manager();
             am.read_motor_outputs();
         }
 
         crate::cognitive::temporal::temporal_cognition().update();
 
-        if now % 20 == 0 {
+        if now.is_multiple_of(20) {
             unsafe {
                 let curiosity = &mut CURIOSITY_ENGINE;
                 curiosity.update(self);
@@ -540,14 +542,14 @@ impl Network {
 
         self.process_global_workspace(now);
 
-        if now % 1000 == 0 {
+        if now.is_multiple_of(1000) {
             self.heartbeat = true;
             self.metabolic_maintenance(now);
         } else {
             self.heartbeat = false;
         }
 
-        if now % 100 == 0 {
+        if now.is_multiple_of(100) {
             self.energy_adaption();
         }
 
@@ -557,11 +559,11 @@ impl Network {
 
         self.cycle_trigger(now);
 
-        if now % 1000 == 0 {
+        if now.is_multiple_of(1000) {
             self.update_statistics();
         }
 
-        if now % 500 == 0 {
+        if now.is_multiple_of(500) {
             crate::telemetry::xai::analyze_current_trace();
         }
     }
@@ -656,7 +658,7 @@ impl Network {
 
         // Adaptive entropy → cognitive mode coupling
         let weight_count = crate::snn::synapse::SYNAPSE_COUNT.load(Ordering::Relaxed);
-        if weight_count > 0 && now % 10 == 0 {
+        if weight_count > 0 && now.is_multiple_of(10) {
             unsafe {
                 let prev_entropy =
                     crate::core::entropy::ENTROPY_MONITOR.compute_entropy(weight_count as usize);
@@ -720,7 +722,7 @@ impl Network {
         mem.consolidate(self.time as u64);
 
         // Persistence (every 60 metabolic cycles = ~1 minute)
-        if self.time % 60000 == 0 {
+        if self.time.is_multiple_of(60000) {
             crate::system::persistence::PersistenceManager::save();
         }
 
@@ -736,7 +738,7 @@ impl Network {
             return FixedPoint::ZERO;
         }
         for i in 0..count as u16 {
-            total = total + self.firing_rates[i as usize];
+            total += self.firing_rates[i as usize];
         }
         total / FixedPoint::from_int(count as i32)
     }
@@ -816,7 +818,7 @@ impl Network {
 
         // 2. Generate hypotheses via cognitive actor
         let rng_seed = unsafe { crate::core::time::METABOLIC_CLOCK.cycles() };
-        let mut rng = crate::core::math::XorShift64Star::new(rng_seed as u64);
+        let mut rng = crate::core::math::XorShift64Star::new(rng_seed);
         let base_action = self.actor.action_selected.unwrap_or(128);
         let cog_actor = crate::cognitive::actor::cognitive_actor();
         cog_actor.generate_hypotheses(base_action, &mut rng);
@@ -871,7 +873,7 @@ impl Network {
                 for i in (0..count.min(1024)).step_by(64) {
                     h = h
                         .wrapping_mul(33)
-                        .wrapping_add(PRED_NEXT_BUF[i as usize].to_bits() as u64);
+                        .wrapping_add(PRED_NEXT_BUF[i].to_bits() as u64);
                 }
                 h
             } else {
@@ -950,7 +952,7 @@ impl Network {
         // Trigger attention exploratory shift if curiosity demands it
         if unsafe { CURIOSITY_ENGINE.should_explore() } {
             let seed = unsafe { crate::core::time::METABOLIC_CLOCK.cycles() };
-            let mut rng = crate::core::math::XorShift64Star::new(seed as u64);
+            let mut rng = crate::core::math::XorShift64Star::new(seed);
             crate::cognitive::attention::attention_router().shift_to_exploratory(&mut rng);
         }
         cog_actor.episode_count += 1;

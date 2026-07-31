@@ -569,7 +569,7 @@ impl MeshNetwork {
         if self.proposal_count >= 8 {
             return 0;
         }
-        let pid = (self.gossip_round as u32) ^ (self.node_id[0] as u32) ^ now;
+        let pid = self.gossip_round ^ (self.node_id[0] as u32) ^ now;
         let idx = self.proposal_count as usize;
         self.active_proposals[idx] = ConsensusVote {
             proposal_id: pid,
@@ -871,7 +871,7 @@ impl MeshNetwork {
 
     pub fn apply_remote_spikes(&mut self) {
         let count = self.remote_spike_count.min(512);
-        for i in 0..count as u16 {
+        for i in 0..count {
             let spike = self.remote_spikes[i as usize];
             if spike.amplitude > FixedPoint::ZERO && spike.hop_count < 3 {
                 let nid = crate::core::memory::NeuronId::new(spike.neuron_idx);
@@ -935,12 +935,7 @@ impl MeshNetwork {
     // ------------------------------------------------------------------
 
     pub fn find_node(&self, id: &[u8; 8]) -> Option<usize> {
-        for i in 0..self.node_count as usize {
-            if self.connected_nodes[i].id == *id {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.node_count as usize).find(|&i| self.connected_nodes[i].id == *id)
     }
 
     // ------------------------------------------------------------------

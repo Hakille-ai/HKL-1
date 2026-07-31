@@ -72,7 +72,7 @@ impl I2cBus {
         #[cfg(any(feature = "std", test))]
         {
             let _ = reg;
-            return Some(25);
+            Some(25)
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -183,7 +183,7 @@ impl SpiBus {
     pub fn read_u16(&self) -> Option<u16> {
         #[cfg(any(feature = "std", test))]
         {
-            return Some(1024);
+            Some(1024)
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -227,7 +227,7 @@ impl SpiBus {
         #[cfg(any(feature = "std", test))]
         {
             let _ = byte;
-            return Some(());
+            Some(())
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -277,7 +277,7 @@ impl AdcChannel {
     pub fn read_raw(&self) -> Option<u16> {
         #[cfg(any(feature = "std", test))]
         {
-            return Some(2048);
+            Some(2048)
         }
         #[cfg(not(any(feature = "std", test)))]
         unsafe {
@@ -369,7 +369,7 @@ pub fn read_sound() -> f32 {
 pub fn read_gpio_pin(_pin: u8) -> bool {
     #[cfg(any(feature = "std", test))]
     {
-        return false;
+        false
     }
     #[cfg(not(any(feature = "std", test)))]
     unsafe {

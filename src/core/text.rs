@@ -14,6 +14,10 @@ impl<'a> FixedTextBuffer<'a> {
         self.pos
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.pos == 0
+    }
+
     pub fn write_bytes(&mut self, bytes: &[u8]) {
         let available = self.buf.len().saturating_sub(self.pos);
         let count = bytes.len().min(available);

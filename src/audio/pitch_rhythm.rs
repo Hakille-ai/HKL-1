@@ -87,7 +87,7 @@ impl PitchRhythmEngine {
             let s_fp = FixedPoint::from_f32(s as f32 / 32768.0);
             total_e += s_fp.abs();
         }
-        total_e = total_e * FixedPoint::from_f32(1.0 / pcm_samples.len() as f32);
+        total_e *= FixedPoint::from_f32(1.0 / pcm_samples.len() as f32);
 
         let delta_e = total_e - self.prev_total_energy;
         let mut onset = false;

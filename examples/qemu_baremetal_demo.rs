@@ -45,7 +45,8 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-#[cfg_attr(not(feature = "std"), unsafe(no_mangle))]
+#[cfg(not(feature = "std"))]
+#[unsafe(no_mangle)]
 pub extern "C" fn main() -> ! {
     // 1. Execute bare-metal boot sequence (t=0 -> 22ms)
     BootSequence::init_hardware();
@@ -59,4 +60,9 @@ pub extern "C" fn main() -> ! {
 
     // 3. Main loop
     BootSequence::run_main_loop()
+}
+
+#[cfg(feature = "std")]
+fn main() {
+    println!("HKL-1 Bare-metal QEMU demo (std mode)");
 }

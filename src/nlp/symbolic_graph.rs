@@ -149,7 +149,7 @@ impl SymbolicKnowledgeGraph {
     pub fn decay_activations(&mut self, decay_rate: FixedPoint) {
         for c in &mut self.concepts {
             if c.valid {
-                c.activation = c.activation * (FixedPoint::ONE - decay_rate);
+                c.activation *= FixedPoint::ONE - decay_rate;
             }
         }
     }

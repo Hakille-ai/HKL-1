@@ -60,12 +60,13 @@ impl ElasticWeightConsolidation {
         current_weight: FixedPoint,
     ) -> FixedPoint {
         for i in 0..self.count {
-            if let Some(p) = self.protected_synapses[i] {
-                if p.source_id == source_id && p.target_id == target_id {
-                    let weight_diff = current_weight - p.optimal_weight;
-                    // EWC Penalty = lambda * F_ij * (w - w_opt)
-                    return self.ewc_lambda * p.fisher_importance * weight_diff;
-                }
+            if let Some(p) = self.protected_synapses[i]
+                && p.source_id == source_id
+                && p.target_id == target_id
+            {
+                let weight_diff = current_weight - p.optimal_weight;
+                // EWC Penalty = lambda * F_ij * (w - w_opt)
+                return self.ewc_lambda * p.fisher_importance * weight_diff;
             }
         }
         FixedPoint::ZERO

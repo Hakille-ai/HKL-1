@@ -98,9 +98,7 @@ impl PersistenceManager {
     }
 
     pub fn rollback() {
-        if PersistenceManager::load_slot(1) {
-            PersistenceManager::save();
-        } else if PersistenceManager::load_slot(2) {
+        if PersistenceManager::load_slot(1) || PersistenceManager::load_slot(2) {
             PersistenceManager::save();
         } else {
             PersistenceManager::factory_reset();
@@ -136,10 +134,10 @@ fn capture_into_slot(slot: usize) {
         dump.header.version = 1;
         dump.header.timestamp = now;
         dump.header.neuron_count = NEURON_COUNT.load(Ordering::Relaxed) as u32;
-        dump.header.synapse_count = SYNAPSE_COUNT.load(Ordering::Relaxed) as u32;
+        dump.header.synapse_count = SYNAPSE_COUNT.load(Ordering::Relaxed);
         dump.header.encrypted = false;
 
-        let neuron_count = (NEURON_COUNT.load(Ordering::Relaxed) as usize).min(MAX_NEURONS);
+        let neuron_count = NEURON_COUNT.load(Ordering::Relaxed).min(MAX_NEURONS);
         for i in 0..neuron_count {
             dump.neuron_states[i] = core::ptr::read(NEURON_ARRAY[i].as_ptr());
         }
@@ -191,9 +189,9 @@ pub fn capture_simulation_snapshot() {
         dump.header.version = 1;
         dump.header.timestamp = crate::core::time::METABOLIC_CLOCK.ticks_1hz() as u64;
         dump.header.neuron_count = NEURON_COUNT.load(Ordering::Relaxed) as u32;
-        dump.header.synapse_count = SYNAPSE_COUNT.load(Ordering::Relaxed) as u32;
+        dump.header.synapse_count = SYNAPSE_COUNT.load(Ordering::Relaxed);
 
-        let neuron_count = (NEURON_COUNT.load(Ordering::Relaxed) as usize).min(MAX_NEURONS);
+        let neuron_count = NEURON_COUNT.load(Ordering::Relaxed).min(MAX_NEURONS);
         for i in 0..neuron_count {
             dump.neuron_states[i] = core::ptr::read(NEURON_ARRAY[i].as_ptr());
         }

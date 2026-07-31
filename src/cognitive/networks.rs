@@ -84,7 +84,7 @@ pub fn nm_calibration() -> &'static mut NeuromodulationCalibration {
 }
 
 pub fn calibrate_neuromodulators(now: u32) {
-    if now % 50 != 0 {
+    if !now.is_multiple_of(50) {
         return;
     }
     let cal = nm_calibration();

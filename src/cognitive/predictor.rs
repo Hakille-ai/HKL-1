@@ -144,7 +144,7 @@ impl Predictor {
         // Scale delta by confidence (uncertain = smaller prediction)
         if best_conf > FixedPoint::ZERO && best_conf < FixedPoint::ONE {
             for d in best_delta.iter_mut() {
-                *d = *d * best_conf;
+                *d *= best_conf;
             }
         }
 

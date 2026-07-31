@@ -35,11 +35,13 @@ impl FormantExtractor {
 
         // Find spectral energy local maxima (peaks)
         for i in 1..(NUM_COCHLEAR_BANDS - 1) {
-            if bands[i].energy > bands[i - 1].energy && bands[i].energy > bands[i + 1].energy {
-                if bands[i].energy > FixedPoint::from_f32(0.1) && peak_count < 3 {
-                    peak_indices[peak_count] = i;
-                    peak_count += 1;
-                }
+            if bands[i].energy > bands[i - 1].energy
+                && bands[i].energy > bands[i + 1].energy
+                && bands[i].energy > FixedPoint::from_f32(0.1)
+                && peak_count < 3
+            {
+                peak_indices[peak_count] = i;
+                peak_count += 1;
             }
         }
 
@@ -84,9 +86,9 @@ impl FormantExtractor {
             VowelClass::VowelI // Low F1, High F2 -> /i/
         } else if f1 < 400.0 && f2 < 1200.0 {
             VowelClass::VowelU // Low F1, Low F2 -> /u/
-        } else if f1 >= 400.0 && f1 <= 600.0 && f2 > 1500.0 {
+        } else if (400.0..=600.0).contains(&f1) && f2 > 1500.0 {
             VowelClass::VowelE // Mid F1, High F2 -> /e/
-        } else if f1 >= 400.0 && f1 <= 650.0 && f2 < 1200.0 {
+        } else if (400.0..=650.0).contains(&f1) && f2 < 1200.0 {
             VowelClass::VowelO // Mid F1, Low F2 -> /o/
         } else {
             VowelClass::Unknown

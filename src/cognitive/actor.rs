@@ -99,9 +99,9 @@ impl ActorCritic {
         energy: FixedPoint,
     ) -> FixedPoint {
         let mut r = FixedPoint::ZERO;
-        r = r - pred_error * FixedPoint::from_f32(0.5);
-        r = r + novelty * FixedPoint::from_f32(0.3);
-        r = r - (FixedPoint::ONE - energy) * FixedPoint::from_f32(0.2);
+        r -= pred_error * FixedPoint::from_f32(0.5);
+        r += novelty * FixedPoint::from_f32(0.3);
+        r -= (FixedPoint::ONE - energy) * FixedPoint::from_f32(0.2);
         r
     }
 

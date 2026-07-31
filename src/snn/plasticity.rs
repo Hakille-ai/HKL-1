@@ -105,11 +105,11 @@ pub static mut PLATEAU_POTENTIALS: [MaybeUninit<PlateauPotential>; crate::MAX_NE
     [const { MaybeUninit::new(PlateauPotential::new_const()) }; crate::MAX_NEURONS];
 
 pub fn calcium_model(neuron: NeuronId) -> &'static mut CalciumModel {
-    unsafe { &mut *CALCIUM_MODELS[neuron.index() as usize].as_mut_ptr() }
+    unsafe { &mut *CALCIUM_MODELS[neuron.index()].as_mut_ptr() }
 }
 
 pub fn plateau_potential(neuron: NeuronId) -> &'static mut PlateauPotential {
-    unsafe { &mut *PLATEAU_POTENTIALS[neuron.index() as usize].as_mut_ptr() }
+    unsafe { &mut *PLATEAU_POTENTIALS[neuron.index()].as_mut_ptr() }
 }
 
 pub fn trigger_plateau(neuron: NeuronId, time: u32) {
@@ -121,7 +121,7 @@ pub fn trigger_plateau(neuron: NeuronId, time: u32) {
 
 pub fn update_calcium_on_spike(neuron: NeuronId, time: u32) {
     let cm = calcium_model(neuron);
-    let last = if time > 1 { time - 1 } else { 0 };
+    let last = time.saturating_sub(1);
     cm.on_spike(time, last);
 }
 

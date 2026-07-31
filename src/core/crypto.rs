@@ -2,6 +2,8 @@
 //! ephemeral key management, secure memory erase, and constant-time
 //! comparison for the HKL-1 neuromorphic AI.
 
+#[allow(unused_imports)]
+use crate::core::atomic::FetchAtomic;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 /// ChaCha20 stream cipher - lightweight, from scratch
@@ -146,7 +148,7 @@ impl PUF {
 
             let mut response = [0u8; 32];
             for i in 0..8 {
-                let word = *self.response_reg.add(i as usize);
+                let word = *self.response_reg.add(i);
                 response[i * 4..i * 4 + 4].copy_from_slice(&word.to_le_bytes());
             }
             response
