@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustup default nightly
+          rustup component add clippy rustfmt
+          rustup target add thumbv7em-none-eabihf riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --features std,alloc,simd
+      - name: Build (host)
+        run: cargo build --features std,alloc,simd
+      - name: Build (ARM Cortex-M7)
+        run: cargo build --target thumbv7em-none-eabihf --no-default-features --features alloc
+      - name: Build (RISC-V A)
+        run: cargo build --target riscv32imac-unknown-none-elf --no-default-features --features alloc
+      - name: Build (RISC-V no-A)
+        run: cargo build --target riscv32imc-unknown-none-elf --no-default-features --features alloc
+      - name: Build (all BSP features)
+        run: |
+          cargo build --features stm32f7,alloc
+          cargo build --features hifive1,alloc
+          cargo build --features esp32c6,alloc
+      - name: Lib tests
+        run: cargo test --lib --features std,alloc,simd
+      - name: Integration tests
+        run: cargo test --test integration --features std,alloc,simd -- --test-threads=1
+      - name: All tests
+        run: cargo test --features std,alloc,simd -- --test-threads=1

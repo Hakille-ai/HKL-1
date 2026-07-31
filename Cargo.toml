@@ -1,0 +1,49 @@
+[package]
+name = "hkl1"
+version = "0.1.0"
+edition = "2024"
+description = "HKL-1 Neuromorphic AI Engine - Bare Metal SNN"
+license = "MIT OR Apache-2.0"
+
+[profile.dev]
+opt-level = 2
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[features]
+default = ["alloc"]
+simd = []
+alloc = []
+std = []
+flash = []
+encryption = []
+stm32f7 = []
+hifive1 = []
+esp32c6 = []
+
+[dependencies]
+# ZERO external dependencies - everything from scratch
+# Only core/std when feature "alloc" is enabled
+
+[[example]]
+name = "snn_cognitive_demo"
+path = "examples/snn_cognitive_demo.rs"
+required-features = ["std"]
+
+[[example]]
+name = "qemu_baremetal_demo"
+path = "examples/qemu_baremetal_demo.rs"
+
+[[bench]]
+name = "snn_benchmark"
+path = "benches/snn_benchmark.rs"
+harness = false
+required-features = ["std", "simd"]

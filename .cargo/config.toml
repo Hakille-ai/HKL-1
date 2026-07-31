@@ -1,0 +1,14 @@
+[target.thumbv7em-none-eabihf]
+rustflags = ["-C", "link-arg=-Tstm32f746.ld", "-C", "linker=rust-lld"]
+
+[target.riscv32imac-unknown-none-elf]
+rustflags = ["-C", "link-arg=-Thifive1.ld", "-C", "linker=rust-lld"]
+
+[target.riscv32imc-unknown-none-elf]
+rustflags = ["-C", "link-arg=-Tesp32c6.ld", "-C", "linker=rust-lld"]
+
+[alias]
+xt = "run --target thumbv7em-none-eabihf"
+xr = "run --target riscv32imac-unknown-none-elf"
+ct = "check --target thumbv7em-none-eabihf"
+cr = "check --target riscv32imac-unknown-none-elf"
