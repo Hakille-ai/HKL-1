@@ -1,5 +1,7 @@
 use crate::core::math::FixedPoint;
 use crate::core::memory::NeuronId;
+use crate::core::text::FixedTextBuffer;
+use core::fmt::Write;
 
 pub const MAX_EDGES: usize = 4096;
 pub const MAX_FEATURES: usize = 128;
@@ -144,6 +146,7 @@ impl CausalGraph {
         }
     }
 
+    #[cfg(any(feature = "alloc", feature = "std"))]
     pub fn top_causal_paths(
         &self,
         n: usize,
@@ -172,6 +175,7 @@ impl CausalGraph {
 
     /// Reconstruct a visual ASCII causal path for a given output neuron.
     ///   Returns lines like: "  [L0:004] ──0.92──> [L2:012] ──0.87──> [L6:042]"
+    #[cfg(any(feature = "alloc", feature = "std"))]
     pub fn reconstruct_path_to(
         &self,
         output: NeuronId,
@@ -223,34 +227,22 @@ impl CausalGraph {
 
     pub fn export_uart_text(&self) -> CausalTextExport {
         let mut buf = [0u8; 2048];
-        let mut pos = 0;
+        let mut writer = FixedTextBuffer::new(&mut buf);
 
-        let header = b"HKL1-XAI v1\n";
-        for &b in header {
-            if pos < 2048 {
-                buf[pos] = b;
-                pos += 1;
-            }
-        }
-
-        let meta = format_args!(
+        writer.write_bytes(b"HKL1-XAI v1\n");
+        let _ = writeln!(
+            writer,
             "edges={} density={:.4} conf={:.4}\n",
             self.edge_count,
             self.graph_density.to_f32(),
             self.avg_confidence.to_f32()
         );
-        let meta_str = alloc::format!("{}", meta);
-        for &b in meta_str.as_bytes() {
-            if pos < 2048 {
-                buf[pos] = b;
-                pos += 1;
-            }
-        }
 
         let edge_limit = self.edge_count.min(64);
         for i in 0..edge_limit as usize {
             let e = &self.edges[i];
-            let line = alloc::format!(
+            let _ = writeln!(
+                writer,
                 "{:04}->{:04} w={:.3} c={:.3} lat={}\n",
                 e.pre.index(),
                 e.post.index(),
@@ -258,63 +250,40 @@ impl CausalGraph {
                 e.confidence.to_f32(),
                 e.avg_latency
             );
-            for &b in line.as_bytes() {
-                if pos < 2048 {
-                    buf[pos] = b;
-                    pos += 1;
-                }
-            }
         }
 
-        let feat_header = b"\nfeatures:\n";
-        for &b in feat_header {
-            if pos < 2048 {
-                buf[pos] = b;
-                pos += 1;
-            }
-        }
+        writer.write_bytes(b"\nfeatures:\n");
 
         let feat_limit = self.feature_count.min(32);
         for i in 0..feat_limit as usize {
             let f = &self.features[i];
             let desc = core::str::from_utf8(&f.description).unwrap_or("?");
-            let line = alloc::format!(
+            let _ = writeln!(
+                writer,
                 "  f{} sign={} cont={:.3} desc={}\n",
                 f.feature_idx,
                 f.sign,
                 f.contribution.to_f32(),
                 desc
             );
-            for &b in line.as_bytes() {
-                if pos < 2048 {
-                    buf[pos] = b;
-                    pos += 1;
-                }
-            }
         }
 
-        CausalTextExport {
-            data: buf,
-            length: pos as u16,
-        }
+        let length = writer.len() as u16;
+        CausalTextExport { data: buf, length }
     }
 
     pub fn export_graphviz_dot(&self) -> CausalTextExport {
         let mut buf = [0u8; 2048];
-        let mut pos = 0;
+        let mut writer = FixedTextBuffer::new(&mut buf);
 
         let header = b"digraph HKL1_Causal {\n  rankdir=LR;\n  node [shape=box style=filled fillcolor=lightyellow];\n";
-        for &b in header {
-            if pos < 2048 {
-                buf[pos] = b;
-                pos += 1;
-            }
-        }
+        writer.write_bytes(header);
 
         let edge_limit = self.edge_count.min(128);
         for i in 0..edge_limit as usize {
             let e = &self.edges[i];
-            let line = alloc::format!(
+            let _ = writeln!(
+                writer,
                 "  n{:04} -> n{:04} [label=\"w={:.2} c={:.2}\" penwidth={:.1}];\n",
                 e.pre.index(),
                 e.post.index(),
@@ -322,26 +291,12 @@ impl CausalGraph {
                 e.confidence.to_f32(),
                 e.confidence.to_f32().max(0.5),
             );
-            for &b in line.as_bytes() {
-                if pos < 2048 {
-                    buf[pos] = b;
-                    pos += 1;
-                }
-            }
         }
 
-        let footer = b"}\n";
-        for &b in footer {
-            if pos < 2048 {
-                buf[pos] = b;
-                pos += 1;
-            }
-        }
+        writer.write_bytes(b"}\n");
 
-        CausalTextExport {
-            data: buf,
-            length: pos as u16,
-        }
+        let length = writer.len() as u16;
+        CausalTextExport { data: buf, length }
     }
 
     pub fn format_decision_explanation(
@@ -421,30 +376,47 @@ impl CausalGraph {
         write_str!(decision_label);
         write_str!(b" (confidence: ");
 
-        let paths = self.top_causal_paths(3);
-        let conf = if paths.is_empty() {
-            FixedPoint::ZERO
-        } else {
-            paths[0].2
-        };
+        type RankedPath = (NeuronId, NeuronId, FixedPoint, u8, u8);
+        let mut paths: [Option<RankedPath>; 3] = [None; 3];
+        for i in 0..self.edge_count as usize {
+            let e = &self.edges[i];
+            let candidate = (e.pre, e.post, e.confidence, e.layer_pair.0, e.layer_pair.1);
+            let mut insert_at = None;
+            for (rank, path) in paths.iter().enumerate() {
+                if path.map(|p| candidate.2 > p.2).unwrap_or(true) {
+                    insert_at = Some(rank);
+                    break;
+                }
+            }
+            if let Some(rank) = insert_at {
+                let mut slot = paths.len() - 1;
+                while slot > rank {
+                    paths[slot] = paths[slot - 1];
+                    slot -= 1;
+                }
+                paths[rank] = Some(candidate);
+            }
+        }
+
+        let conf = paths[0].map(|p| p.2).unwrap_or(FixedPoint::ZERO);
         write_float2!(conf);
         write_str!(b")\nTop path: ");
 
-        if paths.is_empty() {
+        if paths[0].is_none() {
             write_str!(b"None\n");
         } else {
-            for (idx, p) in paths.iter().enumerate() {
+            for (idx, p) in paths.iter().flatten().enumerate() {
                 if idx > 0 {
                     write_str!(b" | ");
                 }
                 write_str!(b"[L");
-                write_num!(p.4 as u16, 1);
+                write_num!(p.3 as u16, 1);
                 write_str!(b":");
                 write_num!(p.0.index() as u16, 3);
                 write_str!(b"] ->");
                 write_float2!(p.2);
                 write_str!(b"-> [L");
-                write_num!(p.5 as u16, 1);
+                write_num!(p.4 as u16, 1);
                 write_str!(b":");
                 write_num!(p.1.index() as u16, 3);
                 write_str!(b"]");
@@ -513,30 +485,54 @@ impl SpikeTraceAnalyzer {
         trace: &[crate::telemetry::spike_trace::TraceEvent],
         graph: &mut CausalGraph,
     ) {
-        for window in trace.windows(3) {
-            let a = window[0];
-            let b = window[2];
-            if b.timestamp > a.timestamp && b.timestamp - a.timestamp < 10 {
-                let latency = b.timestamp - a.timestamp;
-                graph.update_edge(a.neuron_id, b.neuron_id, latency);
+        self.analyze_events(trace.iter().copied(), graph);
+    }
+
+    pub fn analyze_events<I>(&mut self, events: I, graph: &mut CausalGraph)
+    where
+        I: IntoIterator<Item = crate::telemetry::spike_trace::TraceEvent>,
+    {
+        let mut prev2: Option<crate::telemetry::spike_trace::TraceEvent> = None;
+        let mut prev1: Option<crate::telemetry::spike_trace::TraceEvent> = None;
+        for ev in events {
+            if let Some(a) = prev2 {
+                let b = ev;
+                if b.timestamp > a.timestamp && b.timestamp - a.timestamp < 10 {
+                    let latency = b.timestamp - a.timestamp;
+                    graph.update_edge(a.neuron_id, b.neuron_id, latency);
+                }
             }
+            prev2 = prev1;
+            prev1 = Some(ev);
         }
     }
 
     pub fn analyze_and_record(&mut self, trace: &[crate::telemetry::spike_trace::TraceEvent]) {
+        self.analyze_and_record_events(trace.iter().copied());
+    }
+
+    pub fn analyze_and_record_events<I>(&mut self, events: I)
+    where
+        I: IntoIterator<Item = crate::telemetry::spike_trace::TraceEvent>,
+    {
         self.causality_count = 0;
-        for window in trace.windows(3) {
-            let a = window[0];
-            let b = window[2];
-            if b.timestamp > a.timestamp
-                && b.timestamp - a.timestamp < 10
-                && self.causality_count < 1024
-            {
-                let pre_idx = a.neuron_id.index() as u16;
-                let post_idx = b.neuron_id.index() as u16;
-                self.causality_pairs[self.causality_count as usize] = (pre_idx, post_idx);
-                self.causality_count += 1;
+        let mut prev2: Option<crate::telemetry::spike_trace::TraceEvent> = None;
+        let mut prev1: Option<crate::telemetry::spike_trace::TraceEvent> = None;
+        for ev in events {
+            if let Some(a) = prev2 {
+                let b = ev;
+                if b.timestamp > a.timestamp
+                    && b.timestamp - a.timestamp < 10
+                    && self.causality_count < 1024
+                {
+                    let pre_idx = a.neuron_id.index() as u16;
+                    let post_idx = b.neuron_id.index() as u16;
+                    self.causality_pairs[self.causality_count as usize] = (pre_idx, post_idx);
+                    self.causality_count += 1;
+                }
             }
+            prev2 = prev1;
+            prev1 = Some(ev);
         }
     }
 }
@@ -562,12 +558,12 @@ pub fn causal_analyzer() -> &'static mut SpikeTraceAnalyzer {
 }
 
 pub fn analyze_current_trace() {
-    let trace = crate::telemetry::spike_trace::export_trace();
-    if !trace.is_empty() {
+    let log = crate::telemetry::spike_trace::logger();
+    if !log.is_empty() {
         let analyzer = causal_analyzer();
         let graph = causal_graph();
-        analyzer.analyze(trace, graph);
-        analyzer.analyze_and_record(trace);
+        analyzer.analyze_events(log.iter(), graph);
+        analyzer.analyze_and_record_events(log.iter());
     }
 }
 

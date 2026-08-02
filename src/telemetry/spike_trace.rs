@@ -32,6 +32,27 @@ pub struct SpikeTraceTextExport {
     pub len: u16,
 }
 
+pub struct TraceEventIter<'a> {
+    logger: &'a SpikeTraceLogger,
+    offset: u16,
+    remaining: u16,
+}
+
+impl Iterator for TraceEventIter<'_> {
+    type Item = TraceEvent;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+
+        let idx = (self.logger.tail as usize + self.offset as usize) % crate::SPIKE_TRACE_BUFFER;
+        self.offset += 1;
+        self.remaining -= 1;
+        Some(unsafe { self.logger.buffer[idx].assume_init() })
+    }
+}
+
 impl SpikeTraceTextExport {
     pub fn as_str(&self) -> &str {
         let end = self.len as usize;
@@ -81,21 +102,39 @@ impl SpikeTraceLogger {
     }
 
     pub fn export_trace(&self) -> &[TraceEvent] {
-        let count = if self.head >= self.tail {
-            self.head - self.tail
-        } else {
-            (crate::SPIKE_TRACE_BUFFER as u16) - self.tail + self.head
-        };
+        let count = self.len();
         if count == 0 {
             return &[];
         }
+        let contiguous_count = if self.head > self.tail {
+            count
+        } else {
+            (crate::SPIKE_TRACE_BUFFER as u16) - self.tail
+        };
         unsafe {
             let start = self.tail as usize;
             core::slice::from_raw_parts(
                 &self.buffer[start] as *const MaybeUninit<TraceEvent> as *const TraceEvent,
-                count as usize,
+                contiguous_count as usize,
             )
         }
+    }
+
+    pub fn iter(&self) -> TraceEventIter<'_> {
+        TraceEventIter {
+            logger: self,
+            offset: 0,
+            remaining: self.len(),
+        }
+    }
+
+    pub fn copy_trace_into(&self, out: &mut [TraceEvent]) -> usize {
+        let mut copied = 0;
+        for ev in self.iter().take(out.len()) {
+            out[copied] = ev;
+            copied += 1;
+        }
+        copied
     }
 
     pub fn export_uart_text(&self) -> SpikeTraceTextExport {
@@ -104,11 +143,10 @@ impl SpikeTraceLogger {
             len: 0,
         };
         let mut writer = FixedTextBuffer::new(&mut export.text);
-        let trace = self.export_trace();
-        let count = trace.len();
+        let count = self.len();
         writer.write_bytes(b"HKL1-SPIKETRACE\n");
         let _ = writeln!(writer, "events={}", count);
-        for ev in trace.iter().take(64) {
+        for ev in self.iter().take(64) {
             let _ = writeln!(
                 writer,
                 "n={} t={} l={} p={} mp={}",
@@ -163,8 +201,7 @@ impl SpikeTraceLogger {
         }; 64];
         let mut active_count = 0;
 
-        let trace = self.export_trace();
-        for ev in trace {
+        for ev in self.iter() {
             let nid = ev.neuron_id.index();
             let t = ev.timestamp;
 
@@ -212,21 +249,30 @@ impl SpikeTraceLogger {
 
     pub fn compute_firing_rates(&self) -> [u16; 256] {
         let mut rates = [0u16; 256];
-        let trace = self.export_trace();
-        if trace.is_empty() {
+        if self.is_empty() {
             return rates;
         }
 
-        let start_t = trace[0].timestamp;
-        let end_t = trace[trace.len() - 1].timestamp;
-        let window = end_t.saturating_sub(start_t).max(1);
+        let mut iter = self.iter();
+        let Some(first) = iter.next() else {
+            return rates;
+        };
+        let start_t = first.timestamp;
+        let mut end_t = start_t;
+        let idx = first.neuron_id.index();
+        if idx < 256 {
+            rates[idx] = rates[idx].saturating_add(1);
+        }
 
-        for ev in trace {
+        for ev in iter {
+            end_t = ev.timestamp;
             let idx = ev.neuron_id.index();
             if idx < 256 {
                 rates[idx] = rates[idx].saturating_add(1);
             }
         }
+        let window = end_t.saturating_sub(start_t).max(1);
+
         for i in 0..256 {
             let r = (rates[i] as u32 * 1000) / window;
             rates[i] = r.min(u16::MAX as u32) as u16;
@@ -236,8 +282,7 @@ impl SpikeTraceLogger {
 
     pub fn export_trace_filtered(&self, layer_filter: u8) -> usize {
         let mut count = 0;
-        let trace = self.export_trace();
-        for ev in trace {
+        for ev in self.iter() {
             if ev.layer == layer_filter {
                 count += 1;
             }
@@ -375,26 +420,87 @@ mod tests {
     fn test_circular_buffer_wrap() {
         let mut log = SpikeTraceLogger::new();
         log.start_recording();
-        let total = crate::SPIKE_TRACE_BUFFER as u16;
+        let total = crate::SPIKE_TRACE_BUFFER;
         for i in 0..total + 10 {
             log.log_spike(test_neuron_id(0), i as u32, 0, false);
         }
-        assert!(log.len() >= total - 1);
-        assert!(log.len() <= total);
-        let trace = log.export_trace();
-        assert!(!trace.is_empty());
+        assert_eq!(log.len() as usize, total - 1);
+        let first = log.iter().next().unwrap();
+        let last = log.iter().last().unwrap();
+        assert_eq!(first.timestamp, 11);
+        assert_eq!(last.timestamp, total as u32 + 9);
+        assert_eq!(log.iter().count(), log.len() as usize);
     }
 
     #[test]
     fn test_circular_does_not_lose_all_data() {
         let mut log = SpikeTraceLogger::new();
         log.start_recording();
-        let total = crate::SPIKE_TRACE_BUFFER as u16;
+        let total = crate::SPIKE_TRACE_BUFFER;
         for i in 0..total * 3 {
             log.log_spike(test_neuron_id(0), i as u32, 0, false);
         }
         assert!(log.has_data());
-        assert!(log.len() <= total);
+        assert!(log.len() as usize <= total);
+    }
+
+    #[test]
+    fn test_wrapped_uart_export_uses_logical_count() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        let total = crate::SPIKE_TRACE_BUFFER;
+        for i in 0..total + 10 {
+            log.log_spike(test_neuron_id(0), i as u32, 0, false);
+        }
+
+        let export = log.export_uart_text();
+        let text = export.as_str();
+        let mut expected = [0u8; 32];
+        let mut writer = FixedTextBuffer::new(&mut expected);
+        let _ = write!(writer, "events={}", total - 1);
+        let expected_len = writer.len();
+        let expected_text = core::str::from_utf8(&expected[..expected_len]).unwrap_or("");
+        assert!(text.contains(expected_text));
+        assert!(text.contains("t=11"));
+    }
+
+    #[test]
+    fn test_wrapped_trace_copy_preserves_chronological_order() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        let total = crate::SPIKE_TRACE_BUFFER;
+        for i in 0..total + 10 {
+            log.log_spike(test_neuron_id(0), i as u32, 0, false);
+        }
+
+        let contiguous = log.export_trace();
+        assert_eq!(
+            contiguous.len(),
+            crate::SPIKE_TRACE_BUFFER - log.tail as usize
+        );
+
+        let mut out = [TraceEvent::default(); 32];
+        let copied = log.copy_trace_into(&mut out);
+        assert_eq!(copied, out.len());
+        assert_eq!(out[0].timestamp, log.tail as u32);
+        assert_eq!(out[1].timestamp, log.tail as u32 + 1);
+        assert_eq!(out[31].timestamp, log.tail as u32 + 31);
+    }
+
+    #[test]
+    fn test_wrapped_uart_export_reports_full_active_count() {
+        let mut log = SpikeTraceLogger::new();
+        log.start_recording();
+        let total = crate::SPIKE_TRACE_BUFFER;
+        for i in 0..total + 10 {
+            log.log_spike(test_neuron_id(0), i as u32, 0, false);
+        }
+
+        let export = log.export_uart_text();
+        let text = export.as_str();
+        assert!(text.contains("HKL1-SPIKETRACE"));
+        assert_eq!(log.len() as usize, total - 1);
+        assert!(text.contains("events="));
     }
 
     #[test]

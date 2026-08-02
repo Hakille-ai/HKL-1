@@ -16,8 +16,8 @@
   </a>
   <img src="https://img.shields.io/badge/no__std-bare--metal-critical?style=flat-square" alt="no_std">
   <img src="https://img.shields.io/badge/dependencies-0-success?style=flat-square" alt="Zero deps">
-  <img src="https://img.shields.io/badge/tests-554-green?style=flat-square" alt="Tests">
-  <img src="https://img.shields.io/badge/coverage-Core%20%7C%20SNN%20%7C%20Cognitive%20%7C%20System%20%7C%20Safety%20%7C%20Swarm-brightgreen?style=flat-square" alt="Coverage">
+  <img src="https://img.shields.io/badge/tests-753-green?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/coverage-Core%20%7C%20SNN%20%7C%20Cognitive%20%7C%20System%20%7C%20Safety%20%7C%20Swarm%20%7C%20HKL--2-brightgreen?style=flat-square" alt="Coverage">
   <img src="https://img.shields.io/badge/platform-ARM%20Cortex--M7%20%7C%20RISC--RV32%20%7C%20Multi--Core%20PC-informational?style=flat-square" alt="Platforms">
 </p>
 
@@ -27,14 +27,14 @@
 
 ---
 
-## 🧠 What is HKL-1?
+## 🧠 What is HKL-1 & HKL-2?
 
 **HKL-1 is a from-scratch neuromorphic AI engine** that runs on bare-metal microcontrollers and multi-core systems — no OS, no allocator, no external crates, no floating-point hardware required. It simulates a full spiking neural network with cognitive functions, swarm intelligence, and persistent memory in **~100 KB of Rust**.
 
-Inspired by the brain's efficiency, HKL-1 uses **event-driven LIF neurons**, **STDP plasticity**, and **biologically-plausible neuromodulation** (dopamine, serotonin, noradrenaline, acetylcholine) to learn and act in real time — all on a <strong>$5 microcontroller</strong> or scaled across PC multi-threading.
+**HKL-2** extends the system into a **Spiking Foundation Model** (`--features hkl2`), integrating eligibility propagation (e-prop) online learning, high-dimensional population coding, BPE tokenization, and a Softmax-free Spiking Transformer architecture.
 
 ```text
-554 tests ✅  ·  0 warnings  ·  0 errors  ·  0 dependencies  ·  0 floating-point ops
+753 tests ✅  ·  0 warnings  ·  0 errors  ·  0 dependencies  ·  e-prop & Spiking Transformer (HKL-2)
 ```
 
 ---
@@ -55,6 +55,20 @@ Inspired by the brain's efficiency, HKL-1 uses **event-driven LIF neurons**, **S
 ---
 
 ## 🚀 Features
+
+### 🤖 HKL-2 — Spiking Foundation Model (`--features hkl2`)
+| Component | Location | Capability |
+|---|---|---|
+| **e-prop Learning Engine** | `src/learning/` | Biologically plausible online global learning via eligibility propagation ($e_{ij}(t) = \alpha \cdot e_{ij}(t-1) + \text{surrogate}(U_j) \cdot \text{spike}_i$) and online weight updates ($\Delta w = -\eta \cdot L_j \cdot e_{ij}$) |
+| **Surrogate Gradients** | `src/learning/surrogate.rs` | `Fast Sigmoid`, `ArcTan`, and `Straight Through` derivatives in Q16.16 FixedPoint arithmetic |
+| **Spiking Cross-Entropy Loss** | `src/learning/loss.rs` | Cross-entropy loss & learning signal calculation for spiking rate outputs |
+| **Spike Population Embedding** | `src/embedding/spike_embedding.rs` | 256-dimensional spatio-temporal spike pattern encoding over $T=4$ timesteps |
+| **BPE Tokenizer** | `src/embedding/bpe_tokenizer.rs` | Byte-Pair Encoding engine with pair merges and lossless byte decoding |
+| **Spiking Self-Attention (SSA)** | `src/transformer/attention.rs` | 4-head Softmax-free spiking self-attention operating directly on binary Q/K/V spike streams |
+| **Spiking Feed-Forward (FFN)** | `src/transformer/feed_forward.rs` | 256D $\to$ 512D $\to$ 256D LIF spiking MLP with soft membrane resets |
+| **Spiking Transformer Block** | `src/transformer/block.rs` | Residual Spiking Transformer block with dual LayerNorm & SSA |
+| **Spiking Transformer Model** | `src/transformer/backbone.rs` | Full $N$-layer Spiking Transformer backbone with 4096-vocab `OutputProjection` head |
+| **End-to-End Trainer** | `src/training/` | Complete `TextDataLoader` & `Trainer` pipeline connecting autoregressive data loading, loss evaluation, and e-prop updates |
 
 ### 🧠 Apprentissage Continu & Anti-Oubli Catastrophique (`src/cognitive/continual.rs`)
 | Component | Capability |
@@ -258,14 +272,17 @@ cargo build --features stm32f7        # STM32F746 (ARM Cortex-M7)
 cargo build --features hifive1        # SiFive HiFive1 (RISC-V)
 cargo build --features esp32c6        # ESP32-C6 (RISC-V)
 
-# Run complete test suite (546 tests)
-cargo test --features std,alloc,simd
+# Run complete host + HKL-2 test suite
+cargo test --features std,alloc,simd,hkl2
 
 # Run performance benchmark suite
 cargo bench --bench snn_benchmark --features std,simd
 
 # Run full cognitive integration demo
 cargo run --example snn_cognitive_demo --features std,simd
+
+# Run experimental HKL-2 training loop
+cargo run --example hkl2_training_loop --features hkl2
 
 # Build documentation
 cargo doc --no-deps --open

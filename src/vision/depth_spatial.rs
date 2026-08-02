@@ -28,6 +28,29 @@ impl DepthEngine {
         }
     }
 
+    fn compute_sad_5x5(
+        &self,
+        left: &[u8],
+        right: &[u8],
+        x: usize,
+        y: usize,
+        disparity: usize,
+    ) -> i32 {
+        let mut sad = 0;
+        for dy in -2i32..=2i32 {
+            for dx in -2i32..=2i32 {
+                let py = (y as i32 + dy).clamp(0, VISION_HEIGHT as i32 - 1) as usize;
+                let px = (x as i32 + dx).clamp(0, VISION_WIDTH as i32 - 1) as usize;
+                let px_right =
+                    (px as i32 - disparity as i32).clamp(0, VISION_WIDTH as i32 - 1) as usize;
+                let left_val = left[py * VISION_WIDTH + px] as i32;
+                let right_val = right[py * VISION_WIDTH + px_right] as i32;
+                sad += (left_val - right_val).abs();
+            }
+        }
+        sad
+    }
+
     /// Compute 3D Depth Map Z(x, y) from Left and Right stereo frame arrays
     pub fn compute_depth_map(
         &self,
@@ -44,16 +67,13 @@ impl DepthEngine {
             for x in 0..VISION_WIDTH {
                 let idx = y * VISION_WIDTH + x;
 
-                let left_val = left_frame[idx] as i32;
                 let mut best_disp = 0;
                 let mut min_diff = i32::MAX;
 
                 // Match left pixel with shifted right pixel across max_disparity window
                 for d in 0..self.max_disparity {
                     if x >= d {
-                        let right_idx = y * VISION_WIDTH + (x - d);
-                        let right_val = right_frame[right_idx] as i32;
-                        let diff = (left_val - right_val).abs();
+                        let diff = self.compute_sad_5x5(left_frame, right_frame, x, y, d);
                         if diff < min_diff {
                             min_diff = diff;
                             best_disp = d;

@@ -131,6 +131,13 @@ impl<const N: usize> LockFreeRingBuffer<N> {
             .store((read + 1) % (N as u32), Ordering::Release);
         Some(item)
     }
+
+    #[inline(always)]
+    pub fn clear(&self) {
+        let write = self.write_idx.load(Ordering::Acquire);
+        self.read_idx.store(write, Ordering::Release);
+        self.committed_idx.store(write, Ordering::Release);
+    }
 }
 
 /// Sensory modality ring buffers (Section 4)
@@ -210,7 +217,7 @@ pub fn init_buffers() {
         SENSOR_RING.clear();
         PROPRIO_RING.clear();
         EFFERENCE_COPY_RING.clear();
-        // GLOBAL_SPIKE_QUEUE is implicitly empty at start
+        GLOBAL_SPIKE_QUEUE.clear();
     }
 }
 
@@ -277,5 +284,31 @@ mod tests {
         assert_eq!(buf.pop(), Some(2));
         assert!(buf.push(3));
         assert_eq!(buf.pop(), Some(3));
+    }
+
+    #[test]
+    fn lock_free_ring_buffer_clear_discards_pending_spikes() {
+        let buf: LockFreeRingBuffer<4> = LockFreeRingBuffer::new();
+        let event = SpikeEvent {
+            neuron_id: NeuronId::new(7),
+            timestamp: 11,
+            layer: 3,
+            is_predictor: false,
+        };
+
+        let ptr = buf.reserve_write().expect("reserve first spike");
+        unsafe { core::ptr::write(ptr, event) };
+        buf.commit_write();
+
+        buf.clear();
+
+        assert!(buf.pop_front().is_none());
+        let ptr = buf.reserve_write().expect("reserve after clear");
+        unsafe { core::ptr::write(ptr, event) };
+        buf.commit_write();
+        assert_eq!(
+            buf.pop_front().map(|spike| spike.neuron_id.index()),
+            Some(7)
+        );
     }
 }

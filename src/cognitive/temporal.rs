@@ -289,15 +289,15 @@ impl TemporalCognition {
             let p1 = self.seq_buffer[idx(i as i64 + 1)];
             let p2 = self.seq_buffer[idx(i as i64 + 2)];
 
-            if p0.action == c2.action && p1.action == c1.action && p2.action == c0.action {
+            if p0.action == c0.action && p1.action == c1.action && p2.action == c2.action {
                 // Found a repeated 3-action pattern in reverse order
                 // (current → past time)
                 let interval_0 = c0.time_ms.wrapping_sub(c1.time_ms);
                 let interval_1 = c1.time_ms.wrapping_sub(c2.time_ms);
                 self.learn_pattern(
-                    c0.state_hash,
-                    &[c2.action, c1.action, c0.action],
-                    3,
+                    c2.state_hash,
+                    &[c1.action, c0.action],
+                    2,
                     &[interval_1, interval_0, 0, 0, 0, 0, 0],
                 );
                 break;
@@ -360,7 +360,7 @@ impl TemporalCognition {
     pub fn predict_next_action(&self, state_hash: u32) -> Option<u8> {
         let now_ms = self.last_update_ms;
         for p in self.patterns.iter() {
-            if p.trigger_hash == state_hash && p.count > 3 {
+            if p.trigger_hash == state_hash && p.count > 0 && p.action_count >= 1 {
                 // Check timing: action should be within expected interval
                 let since_trigger = now_ms.wrapping_sub(p.last_triggered_ms);
                 if since_trigger >= p.intervals[0] {
@@ -474,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    fn record_events_and_detect_pattern() {
+    fn record_events_keeps_sequence_buffer() {
         let mut tc = TemporalCognition::new();
         // Record several events with a repeating pattern
         tc.record_event(0xAAAA, 1);
@@ -486,9 +486,12 @@ mod tests {
         tc.record_event(0xBBBB, 2);
         tc.record_event(0xCCCC, 3);
 
-        // Pattern [1,2,3] appeared twice
-        let predicted = tc.predict_next_action(0xAAAA);
-        assert!(predicted.is_some() || true); // May or may not have detected yet
+        assert_eq!(tc.seq_count, 8);
+        assert_eq!(tc.seq_idx, 8);
+
+        let last_idx = (tc.seq_idx - 1) % SEQ_BUF_SIZE;
+        assert_eq!(tc.seq_buffer[last_idx].state_hash, 0xCCCC);
+        assert_eq!(tc.seq_buffer[last_idx].action, 3);
     }
 
     #[test]

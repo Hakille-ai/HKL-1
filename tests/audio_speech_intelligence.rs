@@ -18,9 +18,9 @@ fn test_cochlea_gammatone_erb_filtering() {
     let freq = 1000.0;
     let mut pcm = [0i16; 512];
 
-    for n in 0..512 {
-        let phase = 2.0 * 3.1415926 * freq * (n as f32) / sample_rate;
-        pcm[n] = (phase.sin() * 20000.0) as i16;
+    for (n, sample) in pcm.iter_mut().enumerate() {
+        let phase = 2.0 * core::f32::consts::PI * freq * (n as f32) / sample_rate;
+        *sample = (phase.sin() * 20000.0) as i16;
     }
 
     let responses = cochlea.process_audio_samples(&pcm, 1000);
@@ -60,9 +60,9 @@ fn test_pitch_f0_autocorrelation_estimation() {
     let f0 = 120.0;
     let mut pcm = [0i16; 512];
 
-    for n in 0..512 {
-        let phase = 2.0 * 3.1415926 * f0 * (n as f32) / sample_rate;
-        pcm[n] = (phase.sin() * 20000.0) as i16;
+    for (n, sample) in pcm.iter_mut().enumerate() {
+        let phase = 2.0 * core::f32::consts::PI * f0 * (n as f32) / sample_rate;
+        *sample = (phase.sin() * 20000.0) as i16;
     }
 
     let estimated_f0 = pitch_engine.estimate_pitch_f0(&pcm);

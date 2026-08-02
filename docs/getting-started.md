@@ -17,6 +17,12 @@ cd hkl1
 # Build for host (native, for testing algorithms)
 cargo build
 
+# Run the minimal public API example
+cargo run --example minimal_prelude --features std
+
+# Run the experimental HKL-2 training loop
+cargo run --example hkl2_training_loop --features hkl2
+
 # Build for bare-metal target
 cargo build --target thumbv7em-none-eabihf
 
@@ -35,18 +41,18 @@ cargo build --release
 # Syntax and type checking
 cargo check
 
-# Lint (0 warnings)
-cargo clippy
+# Lint using the host feature profile covered by CI
+cargo clippy --features std,alloc,simd,hkl2 --all-targets -- -D warnings
 
-# Format
-cargo fmt
+# Format check
+cargo fmt --check
 ```
 
 ## Test, Benchmark & Examples
 
 ```bash
-# Run complete test suite (498 lib tests + 13 integration tests)
-cargo test --features std,alloc,simd
+# Run complete host + HKL-2 test suite
+cargo test --features std,alloc,simd,hkl2
 
 # Run specific test
 cargo test --lib test_neuron_step
@@ -56,9 +62,33 @@ cargo bench --bench snn_benchmark --features std,simd
 
 # Run cognitive engine integration demo
 cargo run --example snn_cognitive_demo --features std,simd
+
+# Run experimental HKL-2 training loop
+cargo run --example hkl2_training_loop --features hkl2
 ```
 
 Test mode uses `std` feature to enable `#[cfg(test)]` and test harness.
+
+## Minimal API Prelude
+
+Applications can start from the compact embedded prelude:
+
+```rust
+use hkl1::prelude::*;
+
+let neuron = NeuronId::new(0);
+let threshold = FixedPoint::from_f32(0.75);
+let weight = Weight::from_f32(0.5);
+
+assert_eq!(neuron.index(), 0);
+assert!(threshold > FixedPoint::ZERO);
+assert!(weight > Weight::ZERO);
+```
+
+The prelude is allocation-free and re-exports stable fixed-point, neuron,
+synapse, network, safety, I/O, and telemetry types used by firmware and host
+simulation examples. Runtime singleton accessors remain in their module paths
+so firmware code can make initialization and aliasing boundaries explicit.
 
 ## Documentation
 

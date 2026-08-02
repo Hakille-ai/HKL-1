@@ -5,12 +5,50 @@ use crate::core::math::FixedPoint;
 use crate::core::memory::{NEURON_ARRAY, NEURON_COUNT, NeuronState};
 use crate::snn::synapse::{SYNAPSE_ARRAY, SYNAPSE_COUNT, Synapse};
 use core::mem::MaybeUninit;
+#[cfg(test)]
+use core::sync::atomic::AtomicBool;
 use core::sync::atomic::Ordering;
 
 pub static mut PERSISTENCE_SLOTS: [MaybeUninit<BinaryDump>; crate::PERSISTENCE_SLOTS] =
     unsafe { MaybeUninit::uninit().assume_init() };
 
 pub const DUMP_SIZE_INFO: usize = core::mem::size_of::<BinaryDump>();
+pub const FLASH_PERSISTENCE_BASE: usize =
+    crate::system::ota::flash_layout::PERSISTENCE_BASE as usize;
+pub const FLASH_PERSISTENCE_FIRST_SECTOR: u32 = 8;
+
+pub const fn flash_slot_address(slot: usize) -> usize {
+    FLASH_PERSISTENCE_BASE + slot * core::mem::size_of::<BinaryDump>()
+}
+
+pub const fn flash_slot_sector(slot: usize) -> u32 {
+    FLASH_PERSISTENCE_FIRST_SECTOR + slot as u32
+}
+
+#[cfg(test)]
+static PERSISTENCE_TEST_LOCK: AtomicBool = AtomicBool::new(false);
+
+struct PersistenceTestGuard;
+
+fn acquire_persistence_test_lock() -> PersistenceTestGuard {
+    #[cfg(test)]
+    {
+        while PERSISTENCE_TEST_LOCK
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            core::hint::spin_loop();
+        }
+    }
+    PersistenceTestGuard
+}
+
+#[cfg(test)]
+impl Drop for PersistenceTestGuard {
+    fn drop(&mut self) {
+        PERSISTENCE_TEST_LOCK.store(false, Ordering::Release);
+    }
+}
 
 #[repr(C, packed)]
 pub struct DumpHeader {
@@ -32,6 +70,11 @@ pub struct BinaryDump {
 }
 
 pub fn init_persistence() {
+    let _guard = acquire_persistence_test_lock();
+    init_persistence_unlocked();
+}
+
+fn init_persistence_unlocked() {
     for slot in 0..crate::PERSISTENCE_SLOTS {
         unsafe {
             let dump = &mut *PERSISTENCE_SLOTS[slot].as_mut_ptr();
@@ -63,6 +106,11 @@ impl PersistenceManager {
     /// Save state with J-0/J-1/J-2 rotation:
     /// Slot 2 ← Slot 1 ← Slot 0 ← current state (oldest evicted)
     pub fn save() {
+        let _guard = acquire_persistence_test_lock();
+        Self::save_unlocked();
+    }
+
+    fn save_unlocked() {
         // Rotate slots: oldest (2) gets overwritten by J-1, J-1 by J-0, J-0 by current
         for slot in (1..crate::PERSISTENCE_SLOTS).rev() {
             let src = dump_ref(slot - 1);
@@ -80,6 +128,11 @@ impl PersistenceManager {
     }
 
     pub fn load_slot(slot: usize) -> bool {
+        let _guard = acquire_persistence_test_lock();
+        Self::load_slot_unlocked(slot)
+    }
+
+    fn load_slot_unlocked(slot: usize) -> bool {
         if slot >= crate::PERSISTENCE_SLOTS {
             return false;
         }
@@ -87,25 +140,32 @@ impl PersistenceManager {
         read_from_flash(slot);
         #[cfg(feature = "encryption")]
         decrypt_dump(slot);
-        let dump = dump_ref(slot);
-        unsafe {
-            if &(*dump).header.magic != b"HKL1DUMP" {
-                return rollback_invalid(slot);
-            }
+        if !verify_dump(slot) {
+            return rollback_invalid(slot);
         }
         restore_from_slot(slot);
         true
     }
 
     pub fn rollback() {
-        if PersistenceManager::load_slot(1) || PersistenceManager::load_slot(2) {
-            PersistenceManager::save();
+        let _guard = acquire_persistence_test_lock();
+        Self::rollback_unlocked();
+    }
+
+    fn rollback_unlocked() {
+        if Self::load_slot_unlocked(1) || Self::load_slot_unlocked(2) {
+            Self::save_unlocked();
         } else {
-            PersistenceManager::factory_reset();
+            Self::factory_reset_unlocked();
         }
     }
 
     pub fn factory_reset() {
+        let _guard = acquire_persistence_test_lock();
+        Self::factory_reset_unlocked();
+    }
+
+    fn factory_reset_unlocked() {
         let mut rng = crate::core::math::XorShift64Star::new(unsafe {
             crate::core::time::METABOLIC_CLOCK.cycles()
         });
@@ -117,12 +177,14 @@ impl PersistenceManager {
             state.threshold = FixedPoint::from_f32(rng.next_f32() * 0.5 + 0.75);
             state.bias_current = FixedPoint::from_f32(rng.next_f32() * 0.1);
         }
-        PersistenceManager::save();
+        Self::save_unlocked();
     }
 }
 
-fn rollback_invalid(_failed_slot: usize) -> bool {
-    PersistenceManager::rollback();
+fn rollback_invalid(failed_slot: usize) -> bool {
+    if failed_slot == 0 {
+        PersistenceManager::rollback_unlocked();
+    }
     false
 }
 
@@ -154,29 +216,23 @@ fn capture_into_slot(slot: usize) {
             dump.synapse_data[i] = Synapse::default();
         }
 
-        let mut checksum = 0u32;
-        let dump_bytes = core::slice::from_raw_parts(
-            dump as *const BinaryDump as *const u8,
-            core::mem::size_of::<BinaryDump>(),
-        );
-        for &b in dump_bytes.iter().skip(core::mem::size_of::<DumpHeader>()) {
-            checksum = checksum.wrapping_add(b as u32);
-        }
-        dump.header.checksum = checksum;
+        dump.header.checksum = dump_checksum(dump);
     }
 }
 
 fn restore_from_slot(slot: usize) {
     unsafe {
         let dump = &*dump_ref(slot);
-        for i in 0..MAX_NEURONS {
+        let neuron_count = (dump.header.neuron_count as usize).min(MAX_NEURONS);
+        let synapse_count = dump.header.synapse_count.min(crate::MAX_SYNAPSES as u32);
+        for i in 0..neuron_count {
             NEURON_ARRAY[i] = MaybeUninit::new(dump.neuron_states[i]);
         }
-        for i in 0..crate::MAX_SYNAPSES {
+        for i in 0..synapse_count as usize {
             SYNAPSE_ARRAY[i] = MaybeUninit::new(dump.synapse_data[i]);
         }
-        NEURON_COUNT.store(dump.header.neuron_count as usize, Ordering::Relaxed);
-        SYNAPSE_COUNT.store(dump.header.synapse_count, Ordering::Relaxed);
+        NEURON_COUNT.store(neuron_count, Ordering::Relaxed);
+        SYNAPSE_COUNT.store(synapse_count, Ordering::Relaxed);
     }
 }
 
@@ -219,14 +275,16 @@ pub fn restore_simulation_snapshot() {
 
 pub fn restore_state(dump: &BinaryDump) {
     unsafe {
-        for i in 0..MAX_NEURONS {
+        let neuron_count = (dump.header.neuron_count as usize).min(MAX_NEURONS);
+        let synapse_count = dump.header.synapse_count.min(crate::MAX_SYNAPSES as u32);
+        for i in 0..neuron_count {
             NEURON_ARRAY[i] = MaybeUninit::new(dump.neuron_states[i]);
         }
-        for i in 0..crate::MAX_SYNAPSES {
+        for i in 0..synapse_count as usize {
             SYNAPSE_ARRAY[i] = MaybeUninit::new(dump.synapse_data[i]);
         }
-        NEURON_COUNT.store(dump.header.neuron_count as usize, Ordering::Relaxed);
-        SYNAPSE_COUNT.store(dump.header.synapse_count, Ordering::Relaxed);
+        NEURON_COUNT.store(neuron_count, Ordering::Relaxed);
+        SYNAPSE_COUNT.store(synapse_count, Ordering::Relaxed);
     }
 }
 
@@ -303,8 +361,7 @@ fn commit_to_flash(slot: usize) {
         const CR_SER: u32 = 1 << 1;
         const _CR_SNB: u32 = 0x18; // bit 3-7 for sector number
 
-        let flash_base = 0x08000000usize;
-        let flash_addr = flash_base + slot * core::mem::size_of::<BinaryDump>();
+        let flash_addr = flash_slot_address(slot);
         let count = core::mem::size_of::<BinaryDump>() / 4;
 
         // Unlock FLASH
@@ -312,12 +369,7 @@ fn commit_to_flash(slot: usize) {
         core::ptr::write_volatile(FLASH_KEYR, 0xCDEF89AB);
 
         // Erase target sector
-        let sector_num = match slot {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            _ => 0,
-        };
+        let sector_num = flash_slot_sector(slot);
         core::ptr::write_volatile(FLASH_CR, CR_SER | (sector_num << 3));
         core::ptr::write_volatile(FLASH_CR, CR_SER | (sector_num << 3) | (1 << 16)); // START
         while core::ptr::read_volatile(FLASH_SR) & SR_BSY != 0 {}
@@ -341,7 +393,7 @@ fn commit_to_flash(slot: usize) {
 fn read_from_flash(slot: usize) {
     unsafe {
         let dump = dump_mut(slot) as *mut u32;
-        let flash_addr = 0x08000000usize + slot * core::mem::size_of::<BinaryDump>();
+        let flash_addr = flash_slot_address(slot);
         let count = core::mem::size_of::<BinaryDump>() / 4;
         for i in 0..count {
             core::ptr::write(
@@ -353,31 +405,73 @@ fn read_from_flash(slot: usize) {
 }
 
 pub fn verify_dump(slot: usize) -> bool {
+    if slot >= crate::PERSISTENCE_SLOTS {
+        return false;
+    }
     unsafe {
         let dump = &*dump_ref(slot);
         if &dump.header.magic != b"HKL1DUMP" {
             return false;
         }
+        if dump.header.version != 1 {
+            return false;
+        }
+        if dump.header.neuron_count as usize > MAX_NEURONS {
+            return false;
+        }
+        if dump.header.synapse_count as usize > crate::MAX_SYNAPSES {
+            return false;
+        }
         let stored = dump.header.checksum;
-        let mut checksum = 0u32;
-        let bytes = core::slice::from_raw_parts(
+        dump_checksum(dump) == stored
+    }
+}
+
+fn dump_checksum(dump: &BinaryDump) -> u32 {
+    let mut checksum = 0u32;
+    let bytes = unsafe {
+        core::slice::from_raw_parts(
             dump as *const BinaryDump as *const u8,
             core::mem::size_of::<BinaryDump>(),
-        );
-        for &b in bytes.iter().skip(core::mem::size_of::<DumpHeader>()) {
-            checksum = checksum.wrapping_add(b as u32);
-        }
-        checksum == stored
+        )
+    };
+    for &b in bytes.iter().skip(core::mem::size_of::<DumpHeader>()) {
+        checksum = checksum.wrapping_add(b as u32);
     }
+    checksum
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn write_valid_empty_slot(slot: usize) {
+        unsafe {
+            let dump = &mut *dump_mut(slot);
+            dump.header = DumpHeader {
+                magic: *b"HKL1DUMP",
+                version: 1,
+                timestamp: 0,
+                neuron_count: 0,
+                synapse_count: 0,
+                checksum: 0,
+                encrypted: false,
+                padding: [0; 15],
+            };
+            for i in 0..MAX_NEURONS {
+                dump.neuron_states[i] = NeuronState::default();
+            }
+            for i in 0..crate::MAX_SYNAPSES {
+                dump.synapse_data[i] = Synapse::default();
+            }
+            dump.header.checksum = dump_checksum(dump);
+        }
+    }
+
     #[test]
     fn test_init_persistence_clears_all_slots() {
-        init_persistence();
+        let _guard = acquire_persistence_test_lock();
+        init_persistence_unlocked();
         unsafe {
             for slot in 0..crate::PERSISTENCE_SLOTS {
                 let dump = PERSISTENCE_SLOTS[slot].as_ptr();
@@ -398,6 +492,54 @@ mod tests {
 
     #[test]
     fn test_dump_size_info_positive() {
-        assert!(DUMP_SIZE_INFO > 0);
+        let dump_size_info = DUMP_SIZE_INFO;
+        assert!(dump_size_info > 0);
+    }
+
+    #[test]
+    fn test_flash_persistence_layout_stays_out_of_firmware_banks() {
+        let bank_a_end = crate::system::ota::flash_layout::BANK_A_BASE as usize
+            + crate::system::ota::flash_layout::BANK_SIZE as usize;
+        let bank_b_end = crate::system::ota::flash_layout::BANK_B_BASE as usize
+            + crate::system::ota::flash_layout::BANK_SIZE as usize;
+
+        assert!(FLASH_PERSISTENCE_BASE >= bank_a_end);
+        assert!(FLASH_PERSISTENCE_BASE >= bank_b_end);
+        assert_eq!(flash_slot_address(0), FLASH_PERSISTENCE_BASE);
+        assert!(flash_slot_sector(0) >= FLASH_PERSISTENCE_FIRST_SECTOR);
+    }
+
+    #[test]
+    fn test_verify_dump_rejects_corrupted_payload() {
+        let _guard = acquire_persistence_test_lock();
+        write_valid_empty_slot(0);
+        assert!(verify_dump(0));
+
+        unsafe {
+            let dump = &mut *dump_mut(0);
+            dump.neuron_states[0].layer = 7;
+        }
+
+        assert!(!verify_dump(0));
+    }
+
+    #[test]
+    fn test_verify_dump_rejects_out_of_bounds_counts() {
+        let _guard = acquire_persistence_test_lock();
+        write_valid_empty_slot(0);
+        unsafe {
+            let dump = &mut *dump_mut(0);
+            dump.header.neuron_count = (MAX_NEURONS as u32) + 1;
+            dump.header.checksum = dump_checksum(dump);
+        }
+        assert!(!verify_dump(0));
+
+        write_valid_empty_slot(0);
+        unsafe {
+            let dump = &mut *dump_mut(0);
+            dump.header.synapse_count = (crate::MAX_SYNAPSES as u32) + 1;
+            dump.header.checksum = dump_checksum(dump);
+        }
+        assert!(!verify_dump(0));
     }
 }

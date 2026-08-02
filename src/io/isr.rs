@@ -155,17 +155,19 @@ pub const ISR_FLAG_SYSTICK: u32 = 1 << 7;
 
 /// Called from main loop to handle deferred ISR work
 pub fn handle_pending_isrs() {
-    let flags = ISR_PENDING_FLAGS.load(Ordering::Relaxed);
+    let flags = take_pending_isr_flags();
     if flags == 0 {
         return;
     }
 
-    // Clear all pending flags atomically
-    ISR_PENDING_FLAGS.store(0, Ordering::Relaxed);
-
     if flags & ISR_FLAG_SYSTICK != 0 {
         on_systick();
     }
+}
+
+/// Atomically drain pending ISR flags without losing concurrently posted flags.
+pub fn take_pending_isr_flags() -> u32 {
+    ISR_PENDING_FLAGS.swap(0, Ordering::AcqRel)
 }
 
 // ---------------------------------------------------------------------------
@@ -470,23 +472,49 @@ pub fn software_isr_trigger(flag: u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, MutexGuard};
+
+    static ISR_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn lock_isr_state() -> MutexGuard<'static, ()> {
+        ISR_TEST_LOCK.lock().unwrap_or_else(|err| err.into_inner())
+    }
+
+    fn drain_global_spike_queue() {
+        unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.clear() };
+    }
 
     #[test]
     fn isr_pending_flags_default() {
+        let _guard = lock_isr_state();
         ISR_PENDING_FLAGS.store(0, Ordering::SeqCst);
         assert_eq!(ISR_PENDING_FLAGS.load(Ordering::Relaxed), 0);
     }
 
     #[test]
     fn software_isr_triggers_systick() {
+        let _guard = lock_isr_state();
         ISR_PENDING_FLAGS.store(0, Ordering::SeqCst);
         software_isr_trigger(ISR_FLAG_SYSTICK);
         assert_eq!(ISR_PENDING_FLAGS.load(Ordering::Relaxed), ISR_FLAG_SYSTICK);
     }
 
     #[test]
+    fn take_pending_flags_drains_once() {
+        let _guard = lock_isr_state();
+        ISR_PENDING_FLAGS.store(0, Ordering::SeqCst);
+        software_isr_trigger(ISR_FLAG_SYSTICK | ISR_FLAG_ADC);
+
+        let flags = take_pending_isr_flags();
+
+        assert_eq!(flags, ISR_FLAG_SYSTICK | ISR_FLAG_ADC);
+        assert_eq!(take_pending_isr_flags(), 0);
+    }
+
+    #[test]
     fn isr_push_spike_to_queue() {
-        // Verify queue starts empty
+        let _guard = lock_isr_state();
+        drain_global_spike_queue();
         assert!(unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.pop_front() }.is_none());
 
         // Push via ISR path
@@ -497,11 +525,14 @@ mod tests {
         assert!(spike.is_some());
         if let Some(s) = spike {
             assert_eq!(s.neuron_id.index(), 42);
+            assert_eq!(s.timestamp, 100);
         }
+        drain_global_spike_queue();
     }
 
     #[test]
     fn handle_pending_systick() {
+        let _guard = lock_isr_state();
         ISR_PENDING_FLAGS.store(0, Ordering::SeqCst);
         software_isr_trigger(ISR_FLAG_SYSTICK);
         assert!(ISR_PENDING_FLAGS.load(Ordering::Relaxed) != 0);
@@ -511,6 +542,7 @@ mod tests {
 
     #[test]
     fn handle_pending_no_flags() {
+        let _guard = lock_isr_state();
         ISR_PENDING_FLAGS.store(0, Ordering::SeqCst);
         handle_pending_isrs(); // Should not panic
     }
@@ -533,8 +565,8 @@ mod tests {
 
     #[test]
     fn multiple_isr_spikes_in_queue() {
-        // Clear queue
-        while unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.pop_front() }.is_some() {}
+        let _guard = lock_isr_state();
+        drain_global_spike_queue();
 
         isr_push_spike(1, crate::core::math::FixedPoint::ZERO, 10);
         isr_push_spike(2, crate::core::math::FixedPoint::ONE, 20);
@@ -544,5 +576,6 @@ mod tests {
         assert!(unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.pop_front() }.is_some());
         assert!(unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.pop_front() }.is_some());
         assert!(unsafe { crate::io::buffers::GLOBAL_SPIKE_QUEUE.pop_front() }.is_none());
+        drain_global_spike_queue();
     }
 }

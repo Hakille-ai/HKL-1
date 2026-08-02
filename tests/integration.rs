@@ -17,7 +17,8 @@ fn setup_basic_network() {
 
     unsafe {
         NEURON_COUNT.store(4, Ordering::Relaxed);
-        for i in 0..4 {
+        let mut i = 0;
+        while i < 4 {
             NEURON_ARRAY[i] = MaybeUninit::new(NeuronState {
                 membrane_potential: FixedPoint::ZERO,
                 threshold: FixedPoint::from_f32(0.5),
@@ -29,6 +30,7 @@ fn setup_basic_network() {
                 neuron_type: NeuronType::LIF,
                 flags: NeuronFlags(0),
             });
+            i += 1;
         }
     }
 }
@@ -240,8 +242,10 @@ fn test_endurance_plasticity_100k() {
     const NEURONS: usize = 16;
 
     unsafe {
-        for i in 0..NEURONS {
-            CALCIUM_MODELS[i] = MaybeUninit::new(CalciumModel::new_const());
+        let mut calcium_idx = 0;
+        while calcium_idx < NEURONS {
+            CALCIUM_MODELS[calcium_idx] = MaybeUninit::new(CalciumModel::new_const());
+            calcium_idx += 1;
         }
         PLASTICITY_CTRL.write(PlasticityController::new_const());
         hkl1::snn::neuron::init_neuromodulators();
@@ -281,11 +285,13 @@ fn test_endurance_plasticity_100k() {
         }
 
         // Final invariant check
-        for i in 0..NEURONS {
-            let cm = &*CALCIUM_MODELS[i].as_ptr();
+        let mut invariant_idx = 0;
+        while invariant_idx < NEURONS {
+            let cm = &*CALCIUM_MODELS[invariant_idx].as_ptr();
             assert!(cm.concentration >= FixedPoint::ZERO);
-            let et = &*ELIGIBILITY_TRACES[i].as_ptr();
+            let et = &*ELIGIBILITY_TRACES[invariant_idx].as_ptr();
             assert!(et.trace >= FixedPoint::ZERO);
+            invariant_idx += 1;
         }
     }
 }
@@ -305,7 +311,8 @@ fn test_bio_pipeline_full_cycle() {
 
     unsafe {
         NEURON_COUNT.store(8, Ordering::Relaxed);
-        for i in 0..8 {
+        let mut i = 0;
+        while i < 8 {
             NEURON_ARRAY[i] = MaybeUninit::new(NeuronState {
                 membrane_potential: FixedPoint::ZERO,
                 threshold: FixedPoint::from_f32(0.5),
@@ -317,6 +324,7 @@ fn test_bio_pipeline_full_cycle() {
                 neuron_type: NeuronType::LIF,
                 flags: NeuronFlags(0),
             });
+            i += 1;
         }
     }
 

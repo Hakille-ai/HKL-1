@@ -4,7 +4,7 @@
 
 #[allow(unused_imports)]
 use crate::core::atomic::FetchAtomic;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, Ordering, compiler_fence};
 
 /// ChaCha20 stream cipher - lightweight, from scratch
 /// Used for encrypting binary dumps to Flash
@@ -234,14 +234,26 @@ impl EphemeralKeyManager {
 /// Secure erase - overwrites memory multiple times
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn secure_erase(ptr: *mut u8, len: usize, passes: usize) {
+    if ptr.is_null() || len == 0 {
+        return;
+    }
+    let patterns = [0x00, 0xFF, 0xAA, 0x55];
     for _ in 0..passes {
-        unsafe {
-            core::ptr::write_bytes(ptr, 0x00, len);
-            core::ptr::write_bytes(ptr, 0xFF, len);
-            core::ptr::write_bytes(ptr, 0xAA, len);
-            core::ptr::write_bytes(ptr, 0x55, len);
+        for pattern in patterns {
+            for offset in 0..len {
+                unsafe {
+                    core::ptr::write_volatile(ptr.add(offset), pattern);
+                }
+            }
+            compiler_fence(Ordering::SeqCst);
         }
     }
+    compiler_fence(Ordering::SeqCst);
+}
+
+/// Convenience wrapper for securely erasing a mutable byte slice.
+pub fn secure_erase_slice(data: &mut [u8], passes: usize) {
+    secure_erase(data.as_mut_ptr(), data.len(), passes);
 }
 
 /// Constant-time memory comparison (prevents timing attacks)
@@ -300,6 +312,13 @@ mod tests {
         assert!(const_eq(b"hello", b"hello"));
         assert!(!const_eq(b"hello", b"world"));
         assert!(!const_eq(b"hello", b"hell"));
+    }
+
+    #[test]
+    fn secure_erase_slice_finishes_on_final_pattern() {
+        let mut secret = [0x42; 32];
+        secure_erase_slice(&mut secret, 1);
+        assert_eq!(secret, [0x55; 32]);
     }
 
     #[test]

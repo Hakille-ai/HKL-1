@@ -754,7 +754,7 @@ mod tests {
 
     #[test]
     fn fixed_point_from_f32_roundtrip() {
-        let vals = [0.0, 1.0, -1.0, 0.5, 3.14159, -0.001];
+        let vals = [0.0, 1.0, -1.0, 0.5, core::f32::consts::PI, -0.001];
         for &v in &vals {
             let fp = FixedPoint::from_f32(v);
             let roundtrip = fp.to_f32();
@@ -941,10 +941,16 @@ mod tests {
     #[test]
     fn xorshift64_fixed_range() {
         let mut rng = XorShift64Star::new(42);
+        let first = rng.next_u32();
+        let mut saw_different = false;
         for _ in 0..1000 {
             let v = rng.next_u32();
-            assert!(v > 0 || v == 0);
+            if v != first {
+                saw_different = true;
+                break;
+            }
         }
+        assert!(saw_different);
     }
 
     #[test]
