@@ -256,7 +256,7 @@ mod tests {
         p.set_predicted_feedback(10, FixedPoint::from_f32(1.0));
         assert_eq!(p.predicted_feedback[10], FixedPoint::from_f32(1.0));
         assert_eq!(p.correction_cooldown, 0);
-        assert_eq!(p.correction_active, false);
+        assert!(!p.correction_active);
         p.record_actual_feedback(10, FixedPoint::ZERO);
         assert!(
             p.prediction_error > FixedPoint::from_f32(0.2),

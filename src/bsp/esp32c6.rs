@@ -32,6 +32,7 @@ fn init_timers() {
 }
 
 fn init_interrupts() {
+    #[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
     unsafe {
         core::arch::asm!("csrw mie, {0}", in(reg) 0x88u32);
         core::arch::asm!("csrw mstatus, {0}", in(reg) 0x1888u32);
@@ -52,6 +53,7 @@ pub fn read_systimer() -> u64 {
     }
 }
 
+#[cfg(not(feature = "hifive1"))]
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     unsafe {

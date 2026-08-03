@@ -1,8 +1,10 @@
+[graph]
+all-features = false
+no-default-features = false
+
 [advisories]
-vulnerabilities = "deny"
 unmaintained = "transitive"
 yanked = "warn"
-notices = "warn"
 
 [licenses]
 allow = ["MIT", "Apache-2.0"]

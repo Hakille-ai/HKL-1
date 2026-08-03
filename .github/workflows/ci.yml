@@ -6,12 +6,15 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   format:
-    name: "📝 Format Check"
+    name: "Format Check"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,33 +24,59 @@ jobs:
         run: cargo fmt --all --check
 
   lint:
-    name: "🔍 Clippy Lint"
+    name: "Clippy Lint"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Rust toolchain
         run: rustup default nightly && rustup component add clippy
       - name: Clippy (host features)
-        run: cargo clippy --features std,alloc,simd -- -D warnings
+        run: cargo clippy --features std,alloc,simd,hkl2 --all-targets -- -D warnings
+
+  build-integrity:
+    name: "Build Integrity (${{ matrix.name }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            command: cargo check
+          - name: std
+            command: cargo check --features std
+          - name: no-default
+            command: cargo check --no-default-features
+          - name: hkl2
+            command: cargo check --features std,hkl2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup default nightly
+      - name: Check feature profile
+        run: ${{ matrix.command }}
 
   test:
-    name: "🧪 Test Suite"
+    name: "Test Suite"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Rust toolchain
         run: rustup default nightly
       - name: Build
-        run: cargo build --features std,alloc,simd
+        run: cargo build --features std,alloc,simd,hkl2
       - name: Unit tests
-        run: cargo test --lib --features std,alloc,simd -- --test-threads=1
+        run: cargo test --lib --features std,alloc,simd,hkl2 -- --test-threads=1
       - name: Integration tests
-        run: cargo test --test integration --features std,alloc,simd -- --test-threads=1
+        run: cargo test --test integration --features std,alloc,simd,hkl2 -- --test-threads=1
+      - name: Minimal prelude example
+        run: cargo run --example minimal_prelude --features std
+      - name: HKL-2 training loop example
+        run: cargo run --example hkl2_training_loop --features hkl2
       - name: All tests
-        run: cargo test --features std,alloc,simd -- --test-threads=1
+        run: cargo test --features std,alloc,simd,hkl2 -- --test-threads=1
 
   cross-compile:
-    name: "🔧 Cross-Compile ${{ matrix.target }}"
+    name: "Cross-Compile ${{ matrix.target }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -71,11 +100,11 @@ jobs:
         run: cargo build --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
 
   deny:
-    name: "🛡️ Dependency Audit"
+    name: "Dependency Audit"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install cargo-deny
-        run: cargo install cargo-deny --locked
+        run: cargo install cargo-deny --version 0.20.2 --locked
       - name: Check dependencies
         run: cargo deny check

@@ -107,7 +107,7 @@ impl BootSequence {
 
     /// Initialize hardware peripherals (platform-specific)
     fn init_hardware_peripherals() {
-        #[cfg(feature = "stm32f7")]
+        #[cfg(all(feature = "stm32f7", target_arch = "arm"))]
         {
             // 1. Enable FPU (CPACR register)
             const CPACR: *mut u32 = 0xE000_ED88u32 as *mut u32;
@@ -161,7 +161,7 @@ impl BootSequence {
 
     /// Read boot configuration from Flash
     fn read_boot_config() {
-        #[cfg(feature = "stm32f7")]
+        #[cfg(all(feature = "stm32f7", target_arch = "arm"))]
         {
             // Read UID from STM32F7 OTP area (0x1FFF_7A10)
             const UID_BASE: *const u32 = 0x1FFF_7A10 as *const u32;
@@ -186,7 +186,7 @@ impl BootSequence {
 
     /// Enable sensor interrupt handlers
     fn enable_sensor_interrupts() {
-        #[cfg(feature = "stm32f7")]
+        #[cfg(all(feature = "stm32f7", target_arch = "arm"))]
         {
             const NVIC_ISER0: *mut u32 = 0xE000_E100 as *mut u32;
             const NVIC_ISER1: *mut u32 = 0xE000_E104 as *mut u32;

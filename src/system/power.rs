@@ -279,7 +279,11 @@ pub mod hw {
     /// Enter sleep mode (WFI)
     /// Enter sleep mode (WFI)
     pub fn enter_sleep() {
-        #[cfg(not(any(feature = "std", test)))]
+        #[cfg(all(
+            not(feature = "std"),
+            not(test),
+            any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64")
+        ))]
         unsafe {
             write_volatile(SCR, read_volatile(SCR) & !SCR_SLEEPDEEP);
             core::arch::asm!("wfi");
@@ -289,7 +293,11 @@ pub mod hw {
     /// Enter deep-sleep (Stop mode)
     /// Enter deep-sleep (Stop mode)
     pub fn enter_deep_sleep(lpds: bool, fpds: bool) {
-        #[cfg(not(any(feature = "std", test)))]
+        #[cfg(all(
+            not(feature = "std"),
+            not(test),
+            any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64")
+        ))]
         unsafe {
             let mut cr = read_volatile(PWR_CR);
             if lpds {
@@ -310,11 +318,23 @@ pub mod hw {
         {
             let _ = (lpds, fpds);
         }
+        #[cfg(all(
+            not(feature = "std"),
+            not(test),
+            not(any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64"))
+        ))]
+        {
+            let _ = (lpds, fpds);
+        }
     }
 
     /// Enter standby mode (Shutdown)
     pub fn enter_standby() {
-        #[cfg(not(any(feature = "std", test)))]
+        #[cfg(all(
+            not(feature = "std"),
+            not(test),
+            any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64")
+        ))]
         unsafe {
             write_volatile(PWR_CR, read_volatile(PWR_CR) | (1 << 2)); // CSBF + PDDS
             write_volatile(SCR, read_volatile(SCR) | SCR_SLEEPDEEP);

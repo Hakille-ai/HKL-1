@@ -23,7 +23,8 @@ fn setup_network() -> std::sync::MutexGuard<'static, ()> {
     net.time = 0;
 
     unsafe {
-        for i in 0..hkl1::MAX_NEURONS {
+        let mut i = 0;
+        while i < hkl1::MAX_NEURONS {
             NEURON_ARRAY[i] = MaybeUninit::new(NeuronState {
                 membrane_potential: FixedPoint::ZERO,
                 threshold: FixedPoint::from_f32(0.5),
@@ -35,6 +36,7 @@ fn setup_network() -> std::sync::MutexGuard<'static, ()> {
                 neuron_type: NeuronType::LIF,
                 flags: NeuronFlags(0),
             });
+            i += 1;
         }
         NEURON_COUNT.store(256, Ordering::Relaxed);
         hkl1::snn::synapse::SYNAPSE_COUNT.store(0, Ordering::Relaxed);

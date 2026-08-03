@@ -18,6 +18,10 @@ impl<'a> FixedTextBuffer<'a> {
         self.pos == 0
     }
 
+    pub fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.buf[..self.pos]).unwrap_or("")
+    }
+
     pub fn write_bytes(&mut self, bytes: &[u8]) {
         let available = self.buf.len().saturating_sub(self.pos);
         let count = bytes.len().min(available);

@@ -141,14 +141,29 @@ impl Hippocampus {
             cell.winning = false;
         }
         const K_WTA: usize = 16;
-        let mut activations: [(FixedPoint, usize); DG_NEURONS] =
-            [(FixedPoint::ZERO, 0); DG_NEURONS];
-        for (i, cell) in self.dg.iter().enumerate() {
-            activations[i] = (cell.activity, i);
+        let mut winners: [(FixedPoint, usize); K_WTA] = [(FixedPoint::ZERO, 0); K_WTA];
+        for (idx, cell) in self.dg.iter().enumerate() {
+            let activity = cell.activity;
+            let mut insert_at = None;
+            for (rank, &(score, _)) in winners.iter().enumerate() {
+                if activity > score {
+                    insert_at = Some(rank);
+                    break;
+                }
+            }
+            if let Some(rank) = insert_at {
+                let mut slot = K_WTA - 1;
+                while slot > rank {
+                    winners[slot] = winners[slot - 1];
+                    slot -= 1;
+                }
+                winners[rank] = (activity, idx);
+            }
         }
-        activations.sort_by_key(|a| core::cmp::Reverse(a.0));
-        for &(_, idx) in activations.iter().take(K_WTA) {
-            self.dg[idx].winning = true;
+        for &(activity, idx) in winners.iter() {
+            if activity > FixedPoint::ZERO {
+                self.dg[idx].winning = true;
+            }
         }
         for cell in self.dg.iter_mut() {
             if !cell.winning {
