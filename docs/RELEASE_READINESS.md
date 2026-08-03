@@ -44,6 +44,10 @@ guarded cycles, with non-saturated loss and stable supervision.
 - Review of all `unsafe` singletons and MMIO access contracts.
 - README claim cleanup so public claims match measured verification.
 
+The hardware validation pack in `docs/hardware-validation/` defines the
+recommended material, purchase budget, bench assembly, execution runbook, and
+production gates for closing these blockers.
+
 ## Training readiness boundary
 
 The training stack is currently suitable for:
