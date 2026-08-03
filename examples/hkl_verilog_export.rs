@@ -15,10 +15,38 @@ fn main() {
     // Format: (SourceNeuron, TargetNeuron, Weight, UpdatesCount, Variance, AgeCycles)
     println!("\n[1] Preparing Candidate SNN Synapse Network...");
     let synapse_candidates = [
-        (NeuronId::new(0), NeuronId::new(1), FixedPoint::from_f32(0.85), 150, FixedPoint::from_f32(0.0005), 500),
-        (NeuronId::new(1), NeuronId::new(2), FixedPoint::from_f32(0.62), 210, FixedPoint::from_f32(0.0002), 650),
-        (NeuronId::new(2), NeuronId::new(3), FixedPoint::from_f32(0.91), 300, FixedPoint::from_f32(0.0001), 1200),
-        (NeuronId::new(3), NeuronId::new(4), FixedPoint::from_f32(0.44), 180, FixedPoint::from_f32(0.0008), 450),
+        (
+            NeuronId::new(0),
+            NeuronId::new(1),
+            FixedPoint::from_f32(0.85),
+            150,
+            FixedPoint::from_f32(0.0005),
+            500,
+        ),
+        (
+            NeuronId::new(1),
+            NeuronId::new(2),
+            FixedPoint::from_f32(0.62),
+            210,
+            FixedPoint::from_f32(0.0002),
+            650,
+        ),
+        (
+            NeuronId::new(2),
+            NeuronId::new(3),
+            FixedPoint::from_f32(0.91),
+            300,
+            FixedPoint::from_f32(0.0001),
+            1200,
+        ),
+        (
+            NeuronId::new(3),
+            NeuronId::new(4),
+            FixedPoint::from_f32(0.44),
+            180,
+            FixedPoint::from_f32(0.0008),
+            450,
+        ),
     ];
     println!("   Total Synapse Candidates: {}", synapse_candidates.len());
 
@@ -32,10 +60,16 @@ fn main() {
     }
 
     println!("   Bio-compilation Successful!");
-    println!("   Frozen Synapses Count : {}", efpga.last_frozen_subnetwork.as_ref().unwrap().count);
+    println!(
+        "   Frozen Synapses Count : {}",
+        efpga.last_frozen_subnetwork.as_ref().unwrap().count
+    );
 
     // 3. Print Generated Verilog HDL Code
-    println!("\n[3] Generated Synthesizable Verilog RTL Code ({} bytes):", efpga.verilog_len);
+    println!(
+        "\n[3] Generated Synthesizable Verilog RTL Code ({} bytes):",
+        efpga.verilog_len
+    );
     println!("------------------------------------------------------------------");
     let verilog_code = String::from_utf8_lossy(&efpga.verilog_buffer[..efpga.verilog_len]);
     println!("{}", verilog_code);
@@ -50,9 +84,16 @@ fn main() {
 
     println!("\n[5] Hardware Simulation & Sub-Nanosecond Acceleration Benchmark:");
     println!("   Subnetwork ID       : {}", benchmark.subnetwork_id);
-    println!("   Latency             : {} picoseconds ({:.3} ns)", benchmark.latency_picoseconds, benchmark.latency_picoseconds as f64 / 1000.0);
+    println!(
+        "   Latency             : {} picoseconds ({:.3} ns)",
+        benchmark.latency_picoseconds,
+        benchmark.latency_picoseconds as f64 / 1000.0
+    );
     println!("   Clock Cycles        : {}", benchmark.clock_cycles);
-    println!("   Hardware Speedup    : {:.2}x vs Software", benchmark.speedup_vs_software);
+    println!(
+        "   Hardware Speedup    : {:.2}x vs Software",
+        benchmark.speedup_vs_software
+    );
     println!("   Active LUTs Used    : {}", benchmark.active_luts);
 
     println!("\n=== ✅ Verilog RTL Export & eFPGA Acceleration Complete ===");

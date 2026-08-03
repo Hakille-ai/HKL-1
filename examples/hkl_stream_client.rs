@@ -5,7 +5,7 @@
 #[cfg(feature = "hkl2")]
 use hkl1::api::cortex_service::CortexService;
 #[cfg(feature = "hkl2")]
-use hkl1::api::protocol::{HklBinaryPacket, HklCommand, HKL_HEADER_SIZE};
+use hkl1::api::protocol::{HKL_HEADER_SIZE, HklBinaryPacket, HklCommand};
 #[cfg(feature = "hkl2")]
 use hkl1::api::server::HklNativeServer;
 #[cfg(feature = "hkl2")]
@@ -46,7 +46,10 @@ fn main() {
 
     // 3. Multimodal Streaming Loop
     let num_packets = 100usize;
-    println!("\n[3] Streaming {} Multimodal Packets over TCP...", num_packets);
+    println!(
+        "\n[3] Streaming {} Multimodal Packets over TCP...",
+        num_packets
+    );
 
     let start_total = Instant::now();
     let mut latencies_us = Vec::with_capacity(num_packets);
@@ -84,7 +87,12 @@ fn main() {
             break;
         }
 
-        let payload_len = u32::from_be_bytes([header_buf[12], header_buf[13], header_buf[14], header_buf[15]]) as usize;
+        let payload_len = u32::from_be_bytes([
+            header_buf[12],
+            header_buf[13],
+            header_buf[14],
+            header_buf[15],
+        ]) as usize;
         let mut payload_buf = vec![0u8; payload_len];
         if stream.read_exact(&mut payload_buf).is_err() {
             println!("   Stream read payload error at packet {}", i);
@@ -110,10 +118,23 @@ fn main() {
 
     println!("\n[4] Benchmark Results:");
     println!("   Total Packets Transferred : {}", latencies_us.len());
-    println!("   Total Execution Time      : {:.3} ms", total_elapsed.as_secs_f64() * 1000.0);
-    println!("   Throughput                : {:.1} packets/sec", throughput_pps);
-    println!("   Average Latency           : {:.2} us ({:.3} ms)", avg_latency, avg_latency / 1000.0);
-    println!("   Min / Max Latency         : {} us / {} us", min_latency, max_latency);
+    println!(
+        "   Total Execution Time      : {:.3} ms",
+        total_elapsed.as_secs_f64() * 1000.0
+    );
+    println!(
+        "   Throughput                : {:.1} packets/sec",
+        throughput_pps
+    );
+    println!(
+        "   Average Latency           : {:.2} us ({:.3} ms)",
+        avg_latency,
+        avg_latency / 1000.0
+    );
+    println!(
+        "   Min / Max Latency         : {} us / {} us",
+        min_latency, max_latency
+    );
 
     println!("\n=== ✅ Multimodal Streaming Client Benchmark Complete ===");
 }

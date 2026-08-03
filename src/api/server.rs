@@ -3,15 +3,15 @@
 //! HKL Native Protocol (HKL-NP v1) binary packets and JSON control requests.
 #![cfg(feature = "hkl2")]
 
-use alloc::string::String;
-use alloc::format;
-use std::net::{TcpListener, TcpStream};
-use std::io::{Read, Write};
-use std::sync::{Arc, Mutex};
-use std::println;
 use crate::api::cortex_service::CortexService;
 use crate::api::protocol::{HklBinaryPacket, HklCommand, JsonFormatter};
 use crate::core::math::FixedPoint;
+use alloc::format;
+use alloc::string::String;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::println;
+use std::sync::{Arc, Mutex};
 
 /// Multi-threaded Native API Server for HKL-1 / HKL-2
 pub struct HklNativeServer {
@@ -28,7 +28,10 @@ impl HklNativeServer {
     }
 
     /// Process an incoming binary packet and produce response packet
-    pub fn handle_packet(service: &Arc<Mutex<CortexService>>, packet: &HklBinaryPacket) -> HklBinaryPacket {
+    pub fn handle_packet(
+        service: &Arc<Mutex<CortexService>>,
+        packet: &HklBinaryPacket,
+    ) -> HklBinaryPacket {
         let mut guard = service.lock().unwrap();
 
         match packet.command {
@@ -38,7 +41,11 @@ impl HklNativeServer {
                     "{{\"text_tokens\":{},\"audio_spikes\":{},\"vision_spikes\":{},\"status\":\"{}\"}}",
                     res.text_tokens, res.audio_spikes, res.vision_spikes, res.status
                 );
-                HklBinaryPacket::new(HklCommand::PerceiveFrame, packet.timestamp_ms, json.into_bytes())
+                HklBinaryPacket::new(
+                    HklCommand::PerceiveFrame,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::SynthesizeResponse => {
                 let text_prompt = String::from_utf8_lossy(&packet.payload);
@@ -50,12 +57,24 @@ impl HklNativeServer {
                     res.pcm_audio.len(),
                     res.dopamine
                 );
-                HklBinaryPacket::new(HklCommand::SynthesizeResponse, packet.timestamp_ms, json.into_bytes())
+                HklBinaryPacket::new(
+                    HklCommand::SynthesizeResponse,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::EpropTrainStep => {
                 let res = guard.train_eprop("hello", "world");
-                let json = JsonFormatter::format_eprop_result(res.step, FixedPoint::from_f32(res.loss), &res.status);
-                HklBinaryPacket::new(HklCommand::EpropTrainStep, packet.timestamp_ms, json.into_bytes())
+                let json = JsonFormatter::format_eprop_result(
+                    res.step,
+                    FixedPoint::from_f32(res.loss),
+                    &res.status,
+                );
+                HklBinaryPacket::new(
+                    HklCommand::EpropTrainStep,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::CognitiveState => {
                 let state = guard.get_cognitive_state();
@@ -68,17 +87,37 @@ impl HklNativeServer {
                     state.boredom_score,
                     &state.cognitive_mode,
                 );
-                HklBinaryPacket::new(HklCommand::CognitiveState, packet.timestamp_ms, json.into_bytes())
+                HklBinaryPacket::new(
+                    HklCommand::CognitiveState,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::XaiCausalTree => {
                 let res = guard.explain_xai(42);
-                let json = JsonFormatter::format_xai_tree(res.target_neuron, &res.causal_paths, &res.dot_graph);
-                HklBinaryPacket::new(HklCommand::XaiCausalTree, packet.timestamp_ms, json.into_bytes())
+                let json = JsonFormatter::format_xai_tree(
+                    res.target_neuron,
+                    &res.causal_paths,
+                    &res.dot_graph,
+                );
+                HklBinaryPacket::new(
+                    HklCommand::XaiCausalTree,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::SiliconCompile => {
                 let res = guard.compile_efpga();
-                let json = JsonFormatter::format_silicon_compile(res.verilog_lines, res.bitstream_bytes, &res.status);
-                HklBinaryPacket::new(HklCommand::SiliconCompile, packet.timestamp_ms, json.into_bytes())
+                let json = JsonFormatter::format_silicon_compile(
+                    res.verilog_lines,
+                    res.bitstream_bytes,
+                    &res.status,
+                );
+                HklBinaryPacket::new(
+                    HklCommand::SiliconCompile,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             HklCommand::SwarmMeshStatus => {
                 let res = guard.swarm_status();
@@ -86,10 +125,17 @@ impl HklNativeServer {
                     "{{\"node_id\":\"{}\",\"role\":\"{}\",\"connected_peers\":{},\"active_routes\":{}}}",
                     res.node_id_hex, res.role, res.connected_peers, res.active_routes
                 );
-                HklBinaryPacket::new(HklCommand::SwarmMeshStatus, packet.timestamp_ms, json.into_bytes())
+                HklBinaryPacket::new(
+                    HklCommand::SwarmMeshStatus,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
             }
             _ => {
-                let json = format!("{{\"error\":\"Unknown command 0x{:04X}\"}}", packet.command as u16);
+                let json = format!(
+                    "{{\"error\":\"Unknown command 0x{:04X}\"}}",
+                    packet.command as u16
+                );
                 HklBinaryPacket::new(HklCommand::Unknown, packet.timestamp_ms, json.into_bytes())
             }
         }
@@ -104,7 +150,9 @@ impl HklNativeServer {
                 Ok(bytes_read) => {
                     let mut cursor = 0;
                     while cursor < bytes_read {
-                        if let Some((packet, consumed)) = HklBinaryPacket::decode(&buffer[cursor..bytes_read]) {
+                        if let Some((packet, consumed)) =
+                            HklBinaryPacket::decode(&buffer[cursor..bytes_read])
+                        {
                             cursor += consumed;
                             let response_packet = Self::handle_packet(&service, &packet);
                             let encoded_resp = response_packet.encode();
@@ -150,7 +198,10 @@ impl HklNativeServer {
     /// Start the TCP server listening loop
     pub fn listen(&self) -> Result<(), String> {
         let listener = TcpListener::bind(&self.addr).map_err(|e| format!("Bind error: {}", e))?;
-        println!("🚀 HKL Native Protocol Server listening on hkl://{}", self.addr);
+        println!(
+            "🚀 HKL Native Protocol Server listening on hkl://{}",
+            self.addr
+        );
 
         for stream in listener.incoming() {
             match stream {

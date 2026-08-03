@@ -3,9 +3,9 @@
 //! into a unified 512D Spatio-Temporal Cross-Modal Cortex Embedding.
 #![cfg(feature = "hkl2")]
 
-use alloc::vec::Vec;
 use crate::core::math::FixedPoint;
 use crate::embedding::spike_embedding::LIFNeuronLight;
+use alloc::vec::Vec;
 
 pub const FUSED_DIM: usize = 512;
 pub const MODALITY_DIM: usize = 256;
@@ -64,7 +64,10 @@ impl SensoryFusionEngine {
         audio_spikes: &[[bool; MODALITY_DIM]],
         vision_spikes: &[[bool; MODALITY_DIM]],
     ) -> FusedSensoryFrame {
-        let t_len = text_spikes.len().max(audio_spikes.len()).max(vision_spikes.len());
+        let t_len = text_spikes
+            .len()
+            .max(audio_spikes.len())
+            .max(vision_spikes.len());
         let mut fused_stream = Vec::with_capacity(t_len);
         let mut total_spikes = 0usize;
         let mut coincidence_count = 0usize;
@@ -78,14 +81,20 @@ impl SensoryFusionEngine {
 
             for i in 0..FUSED_DIM {
                 let mod_idx = i % MODALITY_DIM;
-                let t_active = t_frame.map_or(false, |f| f[mod_idx]);
-                let a_active = a_frame.map_or(false, |f| f[mod_idx]);
-                let v_active = v_frame.map_or(false, |f| f[mod_idx]);
+                let t_active = t_frame.is_some_and(|f| f[mod_idx]);
+                let a_active = a_frame.is_some_and(|f| f[mod_idx]);
+                let v_active = v_frame.is_some_and(|f| f[mod_idx]);
 
                 let mut current_in = FixedPoint::ZERO;
-                if t_active { current_in = current_in + self.weights_text[i]; }
-                if a_active { current_in = current_in + self.weights_audio[i]; }
-                if v_active { current_in = current_in + self.weights_vision[i]; }
+                if t_active {
+                    current_in = current_in + self.weights_text[i];
+                }
+                if a_active {
+                    current_in = current_in + self.weights_audio[i];
+                }
+                if v_active {
+                    current_in = current_in + self.weights_vision[i];
+                }
 
                 if (t_active as u8 + a_active as u8 + v_active as u8) >= 2 {
                     coincidence_count += 1;
