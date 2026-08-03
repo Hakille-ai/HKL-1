@@ -7,6 +7,7 @@ use crate::learning::loss::SpikingCrossEntropyLoss;
 use crate::transformer::attention::MAX_SEQ_LEN;
 use crate::transformer::backbone::SpikingTransformer;
 use alloc::vec;
+use alloc::vec::Vec;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TrainStepStatus {
@@ -73,6 +74,62 @@ impl Trainer {
         lr_scale: FixedPoint,
     ) -> TrainStepReport {
         self.run_step(inputs, targets, lr_scale.max(FixedPoint::ZERO), true, true)
+    }
+
+    /// Perform multiple training steps and aggregate the average loss.
+    pub fn train_batch(&mut self, samples: &[(Vec<u16>, Vec<u16>)]) -> FixedPoint {
+        let mut total = FixedPoint::ZERO;
+        let mut valid = 0usize;
+        for (inputs, targets) in samples {
+            let report = self.train_step_report(inputs, targets);
+            if report.status != TrainStepStatus::Empty {
+                total = total + report.loss;
+                valid += 1;
+            }
+        }
+        if valid == 0 {
+            FixedPoint::ZERO
+        } else {
+            total / FixedPoint::from_int(valid as i32)
+        }
+    }
+
+    /// Evaluate a sample without touching weights: returns (loss, correct_count).
+    /// Useful for held-out validation and online monitoring.
+    pub fn eval_sample(&mut self, inputs: &[u16], targets: &[u16]) -> (FixedPoint, usize) {
+        self.reset_model_state();
+        let bounded_len = inputs.len().min(targets.len()).min(MAX_SEQ_LEN);
+        if bounded_len == 0 {
+            return (FixedPoint::ZERO, 0);
+        }
+
+        let logits = self.model.forward(&inputs[..bounded_len]);
+        let mut total_loss = FixedPoint::ZERO;
+        let mut correct = 0usize;
+
+        for pos in 0..bounded_len {
+            let target_idx = targets[pos] as usize;
+            let loss = SpikingCrossEntropyLoss::compute_loss(&logits[pos], target_idx, VOCAB_SIZE);
+            total_loss = total_loss + loss;
+
+            if target_idx < VOCAB_SIZE {
+                let mut pred = 0usize;
+                let mut best = logits[pos][0];
+                for (i, v) in logits[pos].iter().enumerate().skip(1) {
+                    if *v > best {
+                        best = *v;
+                        pred = i;
+                    }
+                }
+                if pred == target_idx {
+                    correct += 1;
+                }
+            }
+        }
+
+        self.reset_model_state();
+        let avg = total_loss / FixedPoint::from_int(bounded_len as i32);
+        (avg, correct)
     }
 
     fn run_step(

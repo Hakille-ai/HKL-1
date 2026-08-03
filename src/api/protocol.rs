@@ -24,6 +24,9 @@ pub enum HklCommand {
     SiliconCompile = 0x0006,
     SwarmMeshStatus = 0x0007,
     SystemSnapshot = 0x0008,
+    DatasetStream = 0x0009,
+    SnapshotSave = 0x000A,
+    EvalStep = 0x000B,
     Unknown = 0xFFFF,
 }
 
@@ -38,6 +41,9 @@ impl From<u16> for HklCommand {
             0x0006 => HklCommand::SiliconCompile,
             0x0007 => HklCommand::SwarmMeshStatus,
             0x0008 => HklCommand::SystemSnapshot,
+            0x0009 => HklCommand::DatasetStream,
+            0x000A => HklCommand::SnapshotSave,
+            0x000B => HklCommand::EvalStep,
             _ => HklCommand::Unknown,
         }
     }
@@ -159,6 +165,31 @@ impl JsonFormatter {
         format!(
             "{{\"verilog_lines\":{},\"bitstream_bytes\":{},\"status\":\"{}\"}}",
             verilog_lines, bitstream_bytes, status
+        )
+    }
+
+    pub fn format_dataset_stream(
+        tokens_received: usize,
+        total_buffered: usize,
+        status: &str,
+    ) -> String {
+        format!(
+            "{{\"tokens_received\":{},\"total_buffered\":{},\"status\":\"{}\"}}",
+            tokens_received, total_buffered, status
+        )
+    }
+
+    pub fn format_snapshot_save(path: &str, step_count: u64, status: &str) -> String {
+        format!(
+            "{{\"path\":\"{}\",\"step_count\":{},\"status\":\"{}\"}}",
+            path, step_count, status
+        )
+    }
+
+    pub fn format_eval_step(loss: f32, perplexity: f32, accuracy: f32, samples: usize) -> String {
+        format!(
+            "{{\"loss\":{:.4},\"perplexity\":{:.4},\"accuracy\":{:.4},\"samples\":{}}}",
+            loss, perplexity, accuracy, samples
         )
     }
 }

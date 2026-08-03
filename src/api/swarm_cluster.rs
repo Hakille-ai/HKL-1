@@ -5,6 +5,7 @@
 
 use crate::api::cortex_service::CortexService;
 use crate::core::math::Weight;
+use crate::swarm::federated::MAX_FEDERATION_NODES;
 use crate::swarm::mesh::{NODE_ROLE_CLUSTER_HEAD, NodeInfo};
 use alloc::format;
 use alloc::string::String;
@@ -35,6 +36,10 @@ pub struct SwarmClusterManager {
     pub cluster_nodes: Vec<[u8; 8]>,
     pub cluster_name: String,
     pub total_cluster_updates: u64,
+    /// Pending federated weight updates from peer nodes (Q8.8 format)
+    pending_federated_weights: Vec<Vec<Weight>>,
+    /// Minimum peer count before triggering federated average
+    federated_min_peers: usize,
 }
 
 impl SwarmClusterManager {
@@ -47,6 +52,8 @@ impl SwarmClusterManager {
             cluster_nodes: Vec::new(),
             cluster_name: String::from(cluster_name),
             total_cluster_updates: 0,
+            pending_federated_weights: Vec::new(),
+            federated_min_peers: 2,
         };
         cluster.cluster_nodes.push(local_node_id);
         cluster
@@ -67,10 +74,35 @@ impl SwarmClusterManager {
         self.local_service.mesh_network.add_node(info)
     }
 
-    /// Aggregate federated weight updates from a peer node using Differential Privacy
-    pub fn submit_federated_update(&mut self, peer_id: [u8; 8], _local_weights: &[Weight]) -> bool {
+    /// Aggregate federated weight updates from a peer node using Differential Privacy.
+    /// Accumulates peer weight updates and triggers federated averaging on the
+    /// SNN synapse pool once enough peers have contributed.
+    pub fn submit_federated_update(&mut self, peer_id: [u8; 8], local_weights: &[Weight]) -> bool {
         if !self.cluster_nodes.contains(&peer_id) {
             return false;
+        }
+
+        // Store peer weights for federated averaging
+        self.pending_federated_weights.push(local_weights.to_vec());
+
+        // Trigger federated averaging once we have enough peers
+        if self.pending_federated_weights.len() >= self.federated_min_peers {
+            let num_peers = self
+                .pending_federated_weights
+                .len()
+                .min(MAX_FEDERATION_NODES) as u8;
+            let mut weight_refs: [&[Weight]; 128] = [&[]; 128];
+            for (i, w) in self.pending_federated_weights.iter().take(128).enumerate() {
+                weight_refs[i] = w.as_slice();
+            }
+
+            // Trigger federated averaging on the SNN synapse pool via the local service
+            self.local_service
+                .federated_learning
+                .federated_average(&weight_refs, num_peers);
+
+            // Clear pending buffer for next round
+            self.pending_federated_weights.clear();
         }
 
         self.local_service.federated_learning.aggregation_count += 1;

@@ -1,5 +1,6 @@
 //! Data loader for token sequences.
 
+use crate::training::dataset::DataSource;
 use alloc::vec::Vec;
 
 pub struct TextDataLoader {
@@ -48,6 +49,20 @@ impl TextDataLoader {
 
     pub fn reset(&mut self) {
         self.cursor = 0;
+    }
+}
+
+impl DataSource for TextDataLoader {
+    fn next_sample(&mut self) -> Option<(Vec<u16>, Vec<u16>)> {
+        TextDataLoader::next_sample(self)
+    }
+
+    fn remaining_samples(&self) -> usize {
+        TextDataLoader::remaining_samples(self)
+    }
+
+    fn reset(&mut self) {
+        TextDataLoader::reset(self);
     }
 }
 

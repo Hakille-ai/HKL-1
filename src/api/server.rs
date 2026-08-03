@@ -131,6 +131,40 @@ impl HklNativeServer {
                     json.into_bytes(),
                 )
             }
+            HklCommand::DatasetStream => {
+                let res = guard.stream_dataset(&packet.payload);
+                let json = JsonFormatter::format_dataset_stream(
+                    res.tokens_received,
+                    res.total_buffered,
+                    &res.status,
+                );
+                HklBinaryPacket::new(
+                    HklCommand::DatasetStream,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
+            }
+            HklCommand::SnapshotSave => {
+                let path = String::from_utf8_lossy(&packet.payload).into_owned();
+                let res = guard.save_snapshot(&path);
+                let json =
+                    JsonFormatter::format_snapshot_save(&res.path, res.step_count, &res.status);
+                HklBinaryPacket::new(
+                    HklCommand::SnapshotSave,
+                    packet.timestamp_ms,
+                    json.into_bytes(),
+                )
+            }
+            HklCommand::EvalStep => {
+                let res = guard.eval_dataset();
+                let json = JsonFormatter::format_eval_step(
+                    res.loss,
+                    res.perplexity,
+                    res.accuracy,
+                    res.samples,
+                );
+                HklBinaryPacket::new(HklCommand::EvalStep, packet.timestamp_ms, json.into_bytes())
+            }
             _ => {
                 let json = format!(
                     "{{\"error\":\"Unknown command 0x{:04X}\"}}",

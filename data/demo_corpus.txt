@@ -1,0 +1,14 @@
+﻿HKL-1 is a bare-metal neuromorphic AI engine written in Rust.
+HKL-2 extends HKL-1 with eligibility propagation and spiking transformer self-attention.
+It runs on microcontrollers with zero external dependencies and zero heap allocations.
+Neuromorphic computing processes information using spatio-temporal spikes.
+The brain uses dopamine and serotonin to regulate learning and synaptic plasticity.
+Spiking neural networks achieve massive energy efficiency compared to standard DNNs.
+Eligibility propagation enables online learning without backpropagation through time.
+The spiking transformer uses binary attention over spike trains.
+Multi-modal sensory fusion combines text, audio, and vision into a unified 512D representation.
+The metacognitive auto-tuner adjusts learning rate and surrogate gradients dynamically.
+Federated learning allows swarm nodes to share knowledge without central coordination.
+eFPGA compilation freezes stable subnetworks into synthesizable Verilog RTL.
+The native HKL protocol enables real-time inference and training over TCP.
+

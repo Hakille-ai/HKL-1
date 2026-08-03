@@ -55,6 +55,11 @@ path = "examples/hkl2_training_loop.rs"
 required-features = ["hkl2"]
 
 [[example]]
+name = "hkl2_data_pipeline"
+path = "examples/hkl2_data_pipeline.rs"
+required-features = ["hkl2"]
+
+[[example]]
 name = "qemu_baremetal_demo"
 path = "examples/qemu_baremetal_demo.rs"
 required-features = ["std"]
@@ -64,3 +69,8 @@ name = "snn_benchmark"
 path = "benches/snn_benchmark.rs"
 harness = false
 required-features = ["std", "simd"]
+
+[[bin]]
+name = "hkl2-prepare"
+path = "bin/hkl2_prepare.rs"
+required-features = ["hkl2"]

@@ -16,6 +16,7 @@ use crate::training::trainer::Trainer;
 use crate::vision::retina::VISION_PIXELS;
 use alloc::format;
 use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 /// High-Level Response for Multi-Modal Perception
@@ -79,6 +80,28 @@ pub struct CortexSwarmResult {
     pub consensus_proposals: usize,
 }
 
+/// High-Level Result for Dataset Streaming
+pub struct CortexStreamResult {
+    pub tokens_received: usize,
+    pub total_buffered: usize,
+    pub status: String,
+}
+
+/// High-Level Result for Snapshot Save
+pub struct CortexSnapshotResult {
+    pub path: String,
+    pub step_count: u64,
+    pub status: String,
+}
+
+/// High-Level Result for Evaluation Step
+pub struct CortexEvalResult {
+    pub loss: f32,
+    pub perplexity: f32,
+    pub accuracy: f32,
+    pub samples: usize,
+}
+
 /// Primary Unified Cortex Service Class
 pub struct CortexService {
     pub trainer: Trainer,
@@ -93,6 +116,7 @@ pub struct CortexService {
     pub noradrenaline: FixedPoint,
     pub acetylcholine: FixedPoint,
     pub curiosity: FixedPoint,
+    pub dataset_buffer: Vec<u16>,
 }
 
 impl CortexService {
@@ -130,6 +154,7 @@ impl CortexService {
             noradrenaline: FixedPoint::from_f32(0.2),
             acetylcholine: FixedPoint::from_f32(0.6),
             curiosity: FixedPoint::from_f32(0.8),
+            dataset_buffer: Vec::new(),
         }
     }
 
@@ -326,6 +351,86 @@ impl CortexService {
     pub fn swarm_tick(&mut self, current_time_ms: u32) {
         self.mesh_network.process_gossip_queue(current_time_ms);
         self.mesh_network.process_reconnections(current_time_ms);
+    }
+
+    /// Stream pre-tokenized dataset tokens into the service buffer.
+    pub fn stream_dataset(&mut self, token_bytes: &[u8]) -> CortexStreamResult {
+        let mut count = 0usize;
+        for chunk in token_bytes.chunks_exact(2) {
+            let token = u16::from_le_bytes([chunk[0], chunk[1]]);
+            self.dataset_buffer.push(token);
+            count += 1;
+        }
+        CortexStreamResult {
+            tokens_received: count,
+            total_buffered: self.dataset_buffer.len(),
+            status: String::from("Dataset tokens buffered"),
+        }
+    }
+
+    /// Evaluate the current dataset buffer using the trainer.
+    pub fn eval_dataset(&mut self) -> CortexEvalResult {
+        if self.dataset_buffer.len() < 2 {
+            return CortexEvalResult {
+                loss: f32::NAN,
+                perplexity: f32::NAN,
+                accuracy: f32::NAN,
+                samples: 0,
+            };
+        }
+        let seq_len = 8usize;
+        let mut loader =
+            crate::training::data_loader::TextDataLoader::new(self.dataset_buffer.clone(), seq_len);
+        let mut total_loss = 0.0f32;
+        let mut correct = 0usize;
+        let mut lossable = 0usize;
+        let mut tokens = 0usize;
+
+        while let Some((inputs, targets)) = loader.next_sample() {
+            let (loss, ok) = self.trainer.eval_sample(&inputs, &targets);
+            total_loss += loss.to_f32();
+            lossable += 1;
+            correct += ok;
+            tokens += inputs.len().min(targets.len());
+        }
+
+        if lossable == 0 {
+            return CortexEvalResult {
+                loss: f32::NAN,
+                perplexity: f32::NAN,
+                accuracy: f32::NAN,
+                samples: 0,
+            };
+        }
+
+        let avg_loss = total_loss / lossable as f32;
+        CortexEvalResult {
+            loss: avg_loss,
+            perplexity: (avg_loss.min(10.0)).exp(),
+            accuracy: correct as f32 / tokens.max(1) as f32,
+            samples: lossable,
+        }
+    }
+
+    /// Save a snapshot checkpoint to disk.
+    pub fn save_snapshot(&self, path: &str) -> CortexSnapshotResult {
+        match crate::training::checkpoint::save_checkpoint(
+            path,
+            &self.trainer.model,
+            &self.tokenizer,
+            self.trainer.step_count,
+        ) {
+            Ok(()) => CortexSnapshotResult {
+                path: path.to_string(),
+                step_count: self.trainer.step_count,
+                status: String::from("Checkpoint saved successfully"),
+            },
+            Err(e) => CortexSnapshotResult {
+                path: path.to_string(),
+                step_count: self.trainer.step_count,
+                status: format!("Save failed: {}", e),
+            },
+        }
     }
 }
 
