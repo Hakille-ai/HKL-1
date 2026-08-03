@@ -9,6 +9,12 @@ HKL-1 is a modular, layered neuromorphic AI system designed for bare-metal embed
 │                         TELEMETRY                                  │
 │              (Spike Trace, XAI)                                    │
 ├──────────────────────────────────────────────────────────────────┤
+│           HKL-2 SPIKING FOUNDATION MODEL (features = "hkl2")    │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐           │
+│  │Eprop │ │Surrog│ │Spike │ │BPE   │ │Spike │ │Train │           │
+│  │Engine│ │Grad  │ │Embed │ │Token │ │Trans │ │er/DL │           │
+│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘           │
+├──────────────────────────────────────────────────────────────────┤
 │                         SAFETY                                     │
 │    (Reflexes, Entropy Monitor, Hardware Resilience, Senescence)    │
 ├──────────────────────────────────────────────────────────────────┤
@@ -92,8 +98,9 @@ HKL-1 is a modular, layered neuromorphic AI system designed for bare-metal embed
 6. **Safety** monitors entropy and triggers reflexes; `check_emergencies()` validates system integrity at boot
 7. **Swarm** communicates with peers via mesh networking with gossip protocol and federated learning
 8. **Telemetry** records spike traces and generates XAI explanations
-9. **Persistence** saves/restores full system state to flash (3 rotating slots, CRC32, optional ChaCha20)
-10. **OTA** validates and applies firmware updates via dual-bank flash switching
+9. **HKL-2 Foundation Model (`feature = "hkl2"`)** provides eligibility propagation (`src/learning/`), 256D spike population embeddings (`src/embedding/`), Spiking Self-Attention transformers (`src/transformer/`), end-to-end dataset training (`src/training/`), and bounded cognition control/planning/audit/evaluation/readiness/runtime gating/supervision/episode running (`src/cognition/`)
+10. **Persistence** saves/restores full system state to flash (3 rotating slots, CRC32, optional ChaCha20)
+11. **OTA** validates and applies firmware updates via dual-bank flash switching
 
 ## Boot Timeline (t=0 → 22ms)
 

@@ -11,6 +11,11 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 
+[profile.test]
+opt-level = 1
+lto = false
+codegen-units = 16
+
 [profile.release]
 opt-level = 3
 lto = "fat"
@@ -22,7 +27,8 @@ strip = true
 default = ["alloc"]
 simd = []
 alloc = []
-std = []
+std = ["alloc"]
+hkl2 = ["std", "alloc"]
 flash = []
 encryption = []
 stm32f7 = []
@@ -37,6 +43,16 @@ esp32c6 = []
 name = "snn_cognitive_demo"
 path = "examples/snn_cognitive_demo.rs"
 required-features = ["std"]
+
+[[example]]
+name = "minimal_prelude"
+path = "examples/minimal_prelude.rs"
+required-features = ["std"]
+
+[[example]]
+name = "hkl2_training_loop"
+path = "examples/hkl2_training_loop.rs"
+required-features = ["hkl2"]
 
 [[example]]
 name = "qemu_baremetal_demo"

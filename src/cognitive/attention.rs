@@ -507,8 +507,10 @@ mod tests {
         unsafe {
             crate::core::memory::NEURON_COUNT.store(20, core::sync::atomic::Ordering::Relaxed);
             for i in 0..20 {
-                let mut n = crate::core::memory::NeuronState::default();
-                n.membrane_potential = FixedPoint::from_f32(1.0);
+                let n = crate::core::memory::NeuronState {
+                    membrane_potential: FixedPoint::from_f32(1.0),
+                    ..Default::default()
+                };
                 crate::core::memory::NEURON_ARRAY[i].write(n);
             }
         }
@@ -542,9 +544,11 @@ mod tests {
         ar.focus.set_focus(FocusType::GoalDriven, 0, 0);
         unsafe {
             crate::core::memory::NEURON_COUNT.store(1, core::sync::atomic::Ordering::Relaxed);
-            let mut n = crate::core::memory::NeuronState::default();
-            n.membrane_potential = FixedPoint::from_f32(1.0);
-            n.layer = 0;
+            let n = crate::core::memory::NeuronState {
+                membrane_potential: FixedPoint::from_f32(1.0),
+                layer: 0,
+                ..Default::default()
+            };
             crate::core::memory::NEURON_ARRAY[0].write(n);
             crate::cognitive::neuromodulation::COGNITIVE_NEUROMODULATORS.acetylcholine =
                 FixedPoint::from_f32(1.0);

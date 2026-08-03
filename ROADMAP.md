@@ -501,9 +501,47 @@ system/watchdog               2.8KB   §7.2  ✅ 100%   NeutronicWatchdog, 5 tes
 system/power                  24KB    §11   ✅ 100%   DVFS, wake-up, budget, harvest, V_th piloté par PowerManager ✅
 system/ota                    16KB    §16   ✅ 100%   Dual-bank, CRC32, rollback, flash MMIO, soft reset, no_std (stack buffer [u8;1028] au lieu de Vec)
 
+system/watchdog               2.8KB   §7.2  ✅ 100%   NeutronicWatchdog, 5 tests
+system/power                  24KB    §11   ✅ 100%   DVFS, wake-up, budget, harvest, V_th piloté par PowerManager ✅
+system/ota                    16KB    §16   ✅ 100%   Dual-bank, CRC32, rollback, flash MMIO, soft reset, no_std (stack buffer [u8;1028] au lieu de Vec)
+
 telemetry/spike_trace         5.5KB   §13   ✅ 100%   Buffer + export UART + 13 tests
 telemetry/xai                 5.0KB   §13   ✅  85%   CausalGraph global, reconstruct_path_to(), export UART, 15 tests
+
+[HKL-2 MODULES — --features hkl2]
+learning/surrogate            2.8KB   —     ✅ 100%   Fast Sigmoid, ArcTan, Straight-Through fixed-point
+learning/eprop                3.0KB   —     ✅ 100%   Eligibility propagation, trace decay, weight delta
+learning/loss                 2.2KB   —     ✅ 100%   Spiking cross-entropy loss & learning signals
+embedding/spike_embedding     3.6KB   —     ✅ 100%   SpikeEmbeddingLayer 256D, LIFNeuronLight, temporal coding
+embedding/bpe_tokenizer       3.4KB   —     ✅ 100%   BPE Byte-Pair Encoding & decoding
+transformer/norm              2.2KB   —     ✅ 100%   FixedPoint LayerNorm
+transformer/attention         6.7KB   —     ✅ 100%   Spiking Self-Attention 4-head Softmax-free
+transformer/feed_forward      3.4KB   —     ✅ 100%   Spiking FFN 256->512->256
+transformer/block             2.3KB   —     ✅ 100%   SpikingTransformerBlock avec LayerNorm & résiduels
+transformer/backbone          4.5KB   —     ✅ 100%   SpikingTransformer model + OutputProjection 4096-vocab
+training/data_loader          1.8KB   —     ✅ 100%   TextDataLoader (fenêtre glissante)
+training/trainer              3.0KB   —     ✅ 100%   End-to-end Trainer pipeline (e-prop + loss)
 ```
+
+---
+
+## Phase HKL-2 — Spiking Foundation Model (Architecture Cerveau Artificiel) ✅
+
+> **Paradigme HKL-2** : Évolution du noyau SNN embarqué vers un Modèle de Fondation à Spikes capable d'apprentissage global (e-prop), de représentations distribuées (population coding), et de raisonnement séquentiel (Spiking Transformer).
+
+| Composant | Statut | Fichier | Description |
+|---|---|---|---|
+| **Corrections Critiques Phase 0** | ✅ | `audio/cochlea.rs`, `audio/voice_synth.rs`, `vision/depth_spatial.rs` | Cochlée I/Q quadrature, Synthèse vocale IIR Biquad formants, Stéréo SAD 5×5 |
+| **Gradients Surrogate** | ✅ | `learning/surrogate.rs` | Fast Sigmoid, ArcTan, Straight-Through en virgule fixe Q16.16 |
+| **e-prop Engine** | ✅ | `learning/eprop.rs` | Eligibility propagation online ($e_{ij}(t) = \alpha e_{ij}(t-1) + \text{surrogate}(U_j) \text{spike}_i$) |
+| **Loss Spiking Cross-Entropy** | ✅ | `learning/loss.rs` | Calcul de perte & signaux d'erreur descendants $L_j$ |
+| **Population Spike Embedding** | ✅ | `embedding/spike_embedding.rs` | 256D spatio-temporel sur $T=4$ pas de temps (`LIFNeuronLight`) |
+| **BPE Tokenizer** | ✅ | `embedding/bpe_tokenizer.rs` | Tokenizer Byte-Pair Encoding avec fusion de paires |
+| **Spiking Self-Attention (SSA)** | ✅ | `transformer/attention.rs` | Attention 4 têtes sans Softmax sur flux de spikes binaires Q/K/V |
+| **Spiking Feed-Forward (FFN)** | ✅ | `transformer/feed_forward.rs` | MLP $256 \to 512 \to 256$ en neurones à spikes |
+| **Spiking Transformer Block** | ✅ | `transformer/block.rs` | Bloc résiduel avec dual LayerNorm |
+| **Spiking Transformer Backbone** | ✅ | `transformer/backbone.rs` | Modèle $N$-couches avec tête `OutputProjection` (vocab 4096) |
+| **Trainer & Data Loader** | ✅ | `training/data_loader.rs`, `training/trainer.rs` | Ingestion autoregressive, calcul de perte & maj e-prop |
 
 ---
 
@@ -540,10 +578,12 @@ Ces modules sont le cœur du TDD et doivent être implémentés pour que HKL-1 t
 
 | Priorité | Tâche | Effort |
 |---|---|---|
- | P4 | Tests unitaires et d'intégration | ✅ FAIT — 393 tests (2 stress tests) |
+| P4 | Tests unitaires et d'intégration | ✅ FAIT — 753 tests (2 stress tests) |
 | P4 | CI/CD (GitHub Actions, cross-compilation) | ✅ FAIT (`.github/workflows/ci.yml` + `.cargo/config.toml`) |
 | P4 | BSP cibles matérielles (STM32F7, RISC-V, ESP32) | ✅ FAIT (linker + startup + check_emergencies) |
 | P5 | Sénescence synaptique + migration | ✅ FAIT (senescence + apply_senescence + init_reflex_arcs) |
 | P5 | HIL test bench (QEMU hardware-in-loop) | ~1 mois |
-| P6 | eFPGA bio-compilation | ~3 mois |
-| P6 | Astrocytes, thalamus, hippocampe | ~3 mois |
+| P6 | eFPGA bio-compilation | ✅ FAIT (`src/efpga/`) |
+| P6 | Astrocytes, thalamus, hippocampe | ✅ FAIT (`src/bio/`) |
+| P7 | Entraînement HKL-2 sur corpus de texte | ~1 mois |
+

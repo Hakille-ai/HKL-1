@@ -722,7 +722,7 @@ impl Network {
         mem.consolidate(self.time as u64);
 
         // Persistence (every 60 metabolic cycles = ~1 minute)
-        if self.time.is_multiple_of(60000) {
+        if self.time != 0 && self.time.is_multiple_of(60000) {
             crate::system::persistence::PersistenceManager::save();
         }
 
@@ -1196,7 +1196,7 @@ mod tests {
     fn network_new_creates_default() {
         let n = Network::new();
         assert_eq!(n.time, 0);
-        assert_eq!(n.warp_active, false);
+        assert!(!n.warp_active);
         assert_eq!(n.warp_factor, 1);
     }
 
@@ -1252,12 +1252,12 @@ mod tests {
     fn network_warp_activate_deactivate() {
         let mut n = Network::new();
         assert_eq!(n.warp_factor, 1);
-        assert_eq!(n.warp_active, false);
+        assert!(!n.warp_active);
         n.activate_warp(100);
         assert_eq!(n.warp_factor, 100);
-        assert_eq!(n.warp_active, true);
+        assert!(n.warp_active);
         n.deactivate_warp();
-        assert_eq!(n.warp_active, false);
+        assert!(!n.warp_active);
     }
 
     #[test]

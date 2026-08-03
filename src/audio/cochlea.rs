@@ -37,7 +37,7 @@ impl CochleaEngine {
         Self {
             band_energies: [FixedPoint::ZERO; NUM_COCHLEAR_BANDS],
             prev_energies: [FixedPoint::ZERO; NUM_COCHLEAR_BANDS],
-            spike_thresholds: [FixedPoint::from_f32(0.15); NUM_COCHLEAR_BANDS],
+            spike_thresholds: [FixedPoint::from_f32(0.01); NUM_COCHLEAR_BANDS],
             base_neuron_id,
             event_count: 0,
         }
@@ -60,7 +60,8 @@ impl CochleaEngine {
         // Compute energy in each 32 ERB frequency band
         for band in 0..NUM_COCHLEAR_BANDS {
             let center_freq = ERB_CENTER_FREQS_HZ[band];
-            let mut band_sum = FixedPoint::ZERO;
+            let mut i_sum = FixedPoint::ZERO;
+            let mut q_sum = FixedPoint::ZERO;
 
             // Approximate bandpass filtering via sine/cosine quadrature modulation
             let sample_rate = FixedPoint::from_f32(16000.0);
@@ -70,11 +71,12 @@ impl CochleaEngine {
                 let sample_fp = FixedPoint::from_f32(sample as f32 / 32768.0);
                 let phase = FixedPoint::from_int(n as i32) * omega;
                 // Sin/cos approximation via FixedPoint
-                let weight = phase.cos();
-                band_sum += (sample_fp * weight).abs();
+                i_sum += sample_fp * phase.cos();
+                q_sum += sample_fp * phase.sin();
             }
 
-            let band_energy = band_sum * FixedPoint::from_f32(1.0 / pcm_samples.len() as f32);
+            let band_energy = (i_sum * i_sum + q_sum * q_sum).sqrt()
+                * FixedPoint::from_f32(1.0 / pcm_samples.len() as f32);
             self.band_energies[band] = band_energy;
 
             // Half-wave rectification & Hair Cell Activation
@@ -88,7 +90,7 @@ impl CochleaEngine {
 
             // PFM Spike Generator: Emit spike if energy exceeds band threshold
             let delta = (band_energy - self.prev_energies[band]).abs();
-            if hair_cell_val > self.spike_thresholds[band] && delta > FixedPoint::from_f32(0.05) {
+            if hair_cell_val > self.spike_thresholds[band] && delta > FixedPoint::from_f32(0.005) {
                 let neuron_id = NeuronId::new(self.base_neuron_id.index() as u16 + band as u16);
                 let spike = EncodedSpike {
                     neuron_id,

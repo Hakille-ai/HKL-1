@@ -1,9 +1,13 @@
+#[cfg(target_arch = "arm")]
 use crate::core::time::init_clock;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::AtomicU32;
+#[cfg(target_arch = "arm")]
+use core::sync::atomic::Ordering;
 
 pub static CPU_FREQ_HZ: AtomicU32 = AtomicU32::new(216_000_000);
 pub static TIMER_FREQ_HZ: AtomicU32 = AtomicU32::new(1_000_000);
 
+#[cfg(target_arch = "arm")]
 unsafe extern "C" {
     static __svectors: u8;
     static _sdata: u8;
@@ -19,6 +23,7 @@ unsafe extern "C" {
     static __stack_top: u8;
 }
 
+#[cfg(target_arch = "arm")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn Reset_Handler() -> ! {
     unsafe { cortex_m7_init() };
@@ -31,6 +36,7 @@ pub unsafe extern "C" fn Reset_Handler() -> ! {
     crate::system::boot::BootSequence::run_main_loop()
 }
 
+#[cfg(target_arch = "arm")]
 unsafe fn cortex_m7_init() {
     let sdata = core::ptr::addr_of!(_sdata) as usize;
     let edata = core::ptr::addr_of!(_edata) as usize;
@@ -59,6 +65,7 @@ unsafe fn cortex_m7_init() {
     }
 }
 
+#[cfg(target_arch = "arm")]
 unsafe fn copy_section(dst: usize, end: usize, src: usize) {
     let mut d = dst as *mut u32;
     let mut s = src as *const u32;
@@ -72,6 +79,7 @@ unsafe fn copy_section(dst: usize, end: usize, src: usize) {
     }
 }
 
+#[cfg(target_arch = "arm")]
 unsafe fn zero_section(start: usize, end: usize) {
     let mut p = start as *mut u32;
     let e = end as *mut u32;

@@ -7,7 +7,9 @@
 
 #[cfg(not(feature = "std"))]
 use core::panic::PanicInfo;
+#[cfg(not(feature = "std"))]
 use hkl1::snn::network::network;
+#[cfg(not(feature = "std"))]
 use hkl1::system::boot::BootSequence;
 
 #[cfg(not(feature = "std"))]
