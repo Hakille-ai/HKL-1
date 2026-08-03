@@ -72,30 +72,41 @@ impl MetacognitiveAutoTuner {
         for i in 0..self.loss_count {
             sum += self.loss_history[i].to_f32();
         }
-        let mean = if self.loss_count > 0 { sum / self.loss_count as f32 } else { 0.0 };
+        let mean = if self.loss_count > 0 {
+            sum / self.loss_count as f32
+        } else {
+            0.0
+        };
 
         let mut var_sum = 0.0f32;
         for i in 0..self.loss_count {
             let diff = self.loss_history[i].to_f32() - mean;
             var_sum += diff * diff;
         }
-        let variance = if self.loss_count > 0 { var_sum / self.loss_count as f32 } else { 0.0 };
+        let variance = if self.loss_count > 0 {
+            var_sum / self.loss_count as f32
+        } else {
+            0.0
+        };
 
         // Evaluate action based on variance and boredom
         let mut action = TuningAction::Maintain;
 
         if boredom > 0.8 {
             action = TuningAction::IncreaseLearningScale;
-            self.learning_scale = (self.learning_scale * FixedPoint::from_f32(1.1)).min(FixedPoint::from_f32(5.0));
+            self.learning_scale =
+                (self.learning_scale * FixedPoint::from_f32(1.1)).min(FixedPoint::from_f32(5.0));
         } else if variance < 0.0001 && self.loss_count >= 8 {
             self.consecutive_flat_steps += 1;
             if self.consecutive_flat_steps > 5 {
                 action = TuningAction::SharpenSurrogateGradient;
-                self.surrogate_slope = (self.surrogate_slope * FixedPoint::from_f32(1.2)).min(FixedPoint::from_f32(10.0));
+                self.surrogate_slope = (self.surrogate_slope * FixedPoint::from_f32(1.2))
+                    .min(FixedPoint::from_f32(10.0));
             }
         } else if variance > 10.0 {
             action = TuningAction::DecreaseLearningScale;
-            self.learning_scale = (self.learning_scale * FixedPoint::from_f32(0.8)).max(FixedPoint::from_f32(0.1));
+            self.learning_scale =
+                (self.learning_scale * FixedPoint::from_f32(0.8)).max(FixedPoint::from_f32(0.1));
             self.consecutive_flat_steps = 0;
         } else {
             self.consecutive_flat_steps = 0;
@@ -134,7 +145,8 @@ mod tests {
     #[test]
     fn test_metacognitive_tuner_boredom_increases_learning_scale() {
         let mut tuner = MetacognitiveAutoTuner::new();
-        let report = tuner.record_and_evaluate(FixedPoint::from_f32(5.0), FixedPoint::from_f32(0.5), 0.9);
+        let report =
+            tuner.record_and_evaluate(FixedPoint::from_f32(5.0), FixedPoint::from_f32(0.5), 0.9);
 
         assert_eq!(report.action, TuningAction::IncreaseLearningScale);
         assert!(tuner.learning_scale > FixedPoint::ONE);
@@ -144,7 +156,8 @@ mod tests {
     fn test_metacognitive_tuner_high_variance_decreases_scale() {
         let mut tuner = MetacognitiveAutoTuner::new();
         tuner.record_and_evaluate(FixedPoint::from_f32(1.0), FixedPoint::from_f32(0.5), 0.1);
-        let report = tuner.record_and_evaluate(FixedPoint::from_f32(50.0), FixedPoint::from_f32(0.5), 0.1);
+        let report =
+            tuner.record_and_evaluate(FixedPoint::from_f32(50.0), FixedPoint::from_f32(0.5), 0.1);
 
         assert_eq!(report.action, TuningAction::DecreaseLearningScale);
         assert!(tuner.learning_scale < FixedPoint::ONE);

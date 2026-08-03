@@ -4,19 +4,19 @@
 //! and Swarm Mesh Clustering.
 #![cfg(feature = "hkl2")]
 
-use alloc::string::String;
-use alloc::vec::Vec;
-use alloc::format;
 use crate::core::math::FixedPoint;
 use crate::core::memory::NeuronId;
 use crate::embedding::bpe_tokenizer::BpeTokenizer;
 use crate::encoders::audio_encoder::AudioSpikeEncoder;
 use crate::encoders::vision_encoder::VisionSpikeEncoder;
+use crate::swarm::federated::FederatedLearning;
+use crate::swarm::mesh::{MeshNetwork, NODE_ROLE_CLUSTER_HEAD};
 use crate::telemetry::xai::CausalGraph;
 use crate::training::trainer::Trainer;
 use crate::vision::retina::VISION_PIXELS;
-use crate::swarm::mesh::{MeshNetwork, NODE_ROLE_CLUSTER_HEAD};
-use crate::swarm::federated::FederatedLearning;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// High-Level Response for Multi-Modal Perception
 pub struct CortexPerceptResult {
@@ -154,7 +154,9 @@ impl CortexService {
             let spikes = self.audio_encoder.encode_pcm(pcm_data, 100);
             for step in spikes.iter() {
                 for &b in step.iter() {
-                    if b { a_count += 1; }
+                    if b {
+                        a_count += 1;
+                    }
                 }
             }
         }
@@ -163,7 +165,9 @@ impl CortexService {
             let spikes = self.vision_encoder.encode_frame(frame, 200);
             for step in spikes.iter() {
                 for &b in step.iter() {
-                    if b { v_count += 1; }
+                    if b {
+                        v_count += 1;
+                    }
                 }
             }
         }
@@ -184,7 +188,9 @@ impl CortexService {
 
         for _ in 0..max_tokens {
             let logits = self.trainer.model.forward(&generated_tokens);
-            if logits.is_empty() { break; }
+            if logits.is_empty() {
+                break;
+            }
 
             let last_logits = &logits[logits.len() - 1];
             let mut max_idx = 0usize;
@@ -198,7 +204,9 @@ impl CortexService {
 
             let next_token = max_idx as u16;
             generated_tokens.push(next_token);
-            if next_token == 0 || next_token == 10 { break; }
+            if next_token == 0 || next_token == 10 {
+                break;
+            }
         }
 
         let decoded_bytes = self.tokenizer.decode_tokens(&generated_tokens);
@@ -208,7 +216,7 @@ impl CortexService {
         let mut pcm_out = alloc::vec![0i16; 160];
         for i in 0..160 {
             let t = i as f32 / 16000.0;
-            pcm_out[i] = ((2.0 * 3.14159 * 440.0 * t).sin() * 8000.0) as i16;
+            pcm_out[i] = ((2.0 * core::f32::consts::PI * 440.0 * t).sin() * 8000.0) as i16;
         }
 
         CortexSynthesisResult {
@@ -250,14 +258,20 @@ impl CortexService {
 
     /// Reconstruct XAI causal decision path
     pub fn explain_xai(&mut self, target_neuron: u16) -> CortexXaiResult {
-        let raw_lines = self.causal_graph.reconstruct_path_to(NeuronId::new(target_neuron), 8);
+        let raw_lines = self
+            .causal_graph
+            .reconstruct_path_to(NeuronId::new(target_neuron), 8);
         let mut path_strings = Vec::new();
         let mut dot = String::from("digraph HklCausalTree {\n");
 
         for (idx, line) in raw_lines.iter().enumerate() {
             let line_str = String::from_utf8_lossy(line).into_owned();
             path_strings.push(line_str.clone());
-            dot.push_str(&format!("  step_{} [label=\"{}\"];\n", idx, line_str.replace('"', "\\\"")));
+            dot.push_str(&format!(
+                "  step_{} [label=\"{}\"];\n",
+                idx,
+                line_str.replace('"', "\\\"")
+            ));
         }
         dot.push_str("}\n");
 
@@ -280,11 +294,16 @@ impl CortexService {
 
     /// Get Swarm Mesh Network status
     pub fn swarm_status(&self) -> CortexSwarmResult {
-        let id_hex = format!("{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-            self.mesh_network.node_id[0], self.mesh_network.node_id[1],
-            self.mesh_network.node_id[2], self.mesh_network.node_id[3],
-            self.mesh_network.node_id[4], self.mesh_network.node_id[5],
-            self.mesh_network.node_id[6], self.mesh_network.node_id[7]
+        let id_hex = format!(
+            "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+            self.mesh_network.node_id[0],
+            self.mesh_network.node_id[1],
+            self.mesh_network.node_id[2],
+            self.mesh_network.node_id[3],
+            self.mesh_network.node_id[4],
+            self.mesh_network.node_id[5],
+            self.mesh_network.node_id[6],
+            self.mesh_network.node_id[7]
         );
 
         let role_str = match self.mesh_network.node_role {

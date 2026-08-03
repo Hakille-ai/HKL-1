@@ -4,12 +4,12 @@
 //! cognitive telemetry, XAI causal trees, and eFPGA silicon compilation.
 #![cfg(feature = "hkl2")]
 
+use crate::core::math::FixedPoint;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::format;
-use crate::core::math::FixedPoint;
 
-pub const HKL_MAGIC: [u8; 2] = [b'H', b'K'];
+pub const HKL_MAGIC: [u8; 2] = *b"HK";
 pub const HKL_HEADER_SIZE: usize = 16;
 
 /// Command Identifiers for HKL Native Protocol
@@ -86,8 +86,7 @@ impl HklBinaryPacket {
 
         let cmd_raw = u16::from_be_bytes([bytes[2], bytes[3]]);
         let timestamp_ms = u64::from_be_bytes([
-            bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11],
         ]);
         let payload_len = u32::from_be_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]) as usize;
 
@@ -152,7 +151,11 @@ impl JsonFormatter {
         )
     }
 
-    pub fn format_silicon_compile(verilog_lines: usize, bitstream_bytes: usize, status: &str) -> String {
+    pub fn format_silicon_compile(
+        verilog_lines: usize,
+        bitstream_bytes: usize,
+        status: &str,
+    ) -> String {
         format!(
             "{{\"verilog_lines\":{},\"bitstream_bytes\":{},\"status\":\"{}\"}}",
             verilog_lines, bitstream_bytes, status
@@ -172,7 +175,8 @@ mod tests {
         let encoded = packet.encode();
         assert_eq!(encoded.len(), HKL_HEADER_SIZE + payload.len());
 
-        let (decoded, consumed) = HklBinaryPacket::decode(&encoded).expect("Packet decoding failed");
+        let (decoded, consumed) =
+            HklBinaryPacket::decode(&encoded).expect("Packet decoding failed");
         assert_eq!(consumed, encoded.len());
         assert_eq!(decoded.command, HklCommand::PerceiveFrame);
         assert_eq!(decoded.timestamp_ms, 123456789);

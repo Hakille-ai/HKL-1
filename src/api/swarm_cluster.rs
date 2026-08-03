@@ -3,12 +3,12 @@
 //! consensus proposals, and distributed workload balancing across cluster nodes.
 #![cfg(feature = "hkl2")]
 
-use alloc::string::String;
-use alloc::vec::Vec;
-use alloc::format;
 use crate::api::cortex_service::CortexService;
 use crate::core::math::Weight;
-use crate::swarm::mesh::{NodeInfo, NODE_ROLE_CLUSTER_HEAD};
+use crate::swarm::mesh::{NODE_ROLE_CLUSTER_HEAD, NodeInfo};
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// Node status report in the cluster
 pub struct ClusterNodeReport {
@@ -86,12 +86,10 @@ impl SwarmClusterManager {
         value: i16,
         current_time_ms: u32,
     ) -> ClusterConsensusResult {
-        let prop_id = self.local_service.mesh_network.propose_consensus(
-            topic,
-            value,
-            1000,
-            current_time_ms,
-        );
+        let prop_id =
+            self.local_service
+                .mesh_network
+                .propose_consensus(topic, value, 1000, current_time_ms);
 
         let votes_for = self.cluster_nodes.len() as u16;
         let votes_against = 0u16;
@@ -112,7 +110,8 @@ impl SwarmClusterManager {
         let mut reports = Vec::new();
 
         for &id in self.cluster_nodes.iter() {
-            let id_hex = format!("{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+            let id_hex = format!(
+                "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
                 id[0], id[1], id[2], id[3], id[4], id[5], id[6], id[7]
             );
 

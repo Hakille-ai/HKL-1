@@ -25,46 +25,72 @@ fn main() {
 
     let consensus = cluster.propose_cluster_consensus(101, 1, 42, 1000);
     println!("   Cluster Nodes: {}", cluster.cluster_nodes.len());
-    println!("   Consensus Proposal 101: Passed = {}, VotesFor = {}", consensus.passed, consensus.votes_for);
+    println!(
+        "   Consensus Proposal 101: Passed = {}, VotesFor = {}",
+        consensus.passed, consensus.votes_for
+    );
 
     // 2. Direct Binary Packet Execution Test
     println!("\n[2] Executing HKL Native Protocol Binary Packets...");
     let service_arc = Arc::new(Mutex::new(cluster.local_service));
 
     // Command 1: Perceive Frame
-    let perceive_req = HklBinaryPacket::new(HklCommand::PerceiveFrame, 1000, b"hello world".to_vec());
+    let perceive_req =
+        HklBinaryPacket::new(HklCommand::PerceiveFrame, 1000, b"hello world".to_vec());
     let perceive_resp = HklNativeServer::handle_packet(&service_arc, &perceive_req);
-    println!("   [0x0001 Perceive] Response: {}", String::from_utf8_lossy(&perceive_resp.payload));
+    println!(
+        "   [0x0001 Perceive] Response: {}",
+        String::from_utf8_lossy(&perceive_resp.payload)
+    );
 
     // Command 2: Synthesize Response
     let synth_req = HklBinaryPacket::new(HklCommand::SynthesizeResponse, 1001, b"hello".to_vec());
     let synth_resp = HklNativeServer::handle_packet(&service_arc, &synth_req);
-    println!("   [0x0002 Synthesize] Response: {}", String::from_utf8_lossy(&synth_resp.payload));
+    println!(
+        "   [0x0002 Synthesize] Response: {}",
+        String::from_utf8_lossy(&synth_resp.payload)
+    );
 
     // Command 3: e-prop Online Training
-    let eprop_req = HklBinaryPacket::new(HklCommand::EpropTrainStep, 1002, b"hello->world".to_vec());
+    let eprop_req =
+        HklBinaryPacket::new(HklCommand::EpropTrainStep, 1002, b"hello->world".to_vec());
     let eprop_resp = HklNativeServer::handle_packet(&service_arc, &eprop_req);
-    println!("   [0x0003 e-prop Train] Response: {}", String::from_utf8_lossy(&eprop_resp.payload));
+    println!(
+        "   [0x0003 e-prop Train] Response: {}",
+        String::from_utf8_lossy(&eprop_resp.payload)
+    );
 
     // Command 4: Cognitive State Telemetry
     let state_req = HklBinaryPacket::new(HklCommand::CognitiveState, 1003, vec![]);
     let state_resp = HklNativeServer::handle_packet(&service_arc, &state_req);
-    println!("   [0x0004 Cognitive State] Response: {}", String::from_utf8_lossy(&state_resp.payload));
+    println!(
+        "   [0x0004 Cognitive State] Response: {}",
+        String::from_utf8_lossy(&state_resp.payload)
+    );
 
     // Command 5: XAI Causal Tree
     let xai_req = HklBinaryPacket::new(HklCommand::XaiCausalTree, 1004, vec![]);
     let xai_resp = HklNativeServer::handle_packet(&service_arc, &xai_req);
-    println!("   [0x0005 XAI Causal Tree] Response: {}", String::from_utf8_lossy(&xai_resp.payload));
+    println!(
+        "   [0x0005 XAI Causal Tree] Response: {}",
+        String::from_utf8_lossy(&xai_resp.payload)
+    );
 
     // Command 6: Silicon eFPGA Compilation
     let silicon_req = HklBinaryPacket::new(HklCommand::SiliconCompile, 1005, vec![]);
     let silicon_resp = HklNativeServer::handle_packet(&service_arc, &silicon_req);
-    println!("   [0x0006 Silicon Compile] Response: {}", String::from_utf8_lossy(&silicon_resp.payload));
+    println!(
+        "   [0x0006 Silicon Compile] Response: {}",
+        String::from_utf8_lossy(&silicon_resp.payload)
+    );
 
     // Command 7: Swarm Mesh Topology
     let swarm_req = HklBinaryPacket::new(HklCommand::SwarmMeshStatus, 1006, vec![]);
     let swarm_resp = HklNativeServer::handle_packet(&service_arc, &swarm_req);
-    println!("   [0x0007 Swarm Mesh] Response: {}", String::from_utf8_lossy(&swarm_resp.payload));
+    println!(
+        "   [0x0007 Swarm Mesh] Response: {}",
+        String::from_utf8_lossy(&swarm_resp.payload)
+    );
 
     println!("\n=== ✅ HKL Native Protocol Server Verification Complete ===");
 }

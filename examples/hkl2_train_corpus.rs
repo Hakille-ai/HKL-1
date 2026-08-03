@@ -33,12 +33,19 @@ fn main() {
     tokenizer.add_merge(258, b'N' as u16, 259);
 
     let tokens = tokenizer.encode_bytes(corpus.as_bytes());
-    println!("   Corpus length: {} bytes -> {} BPE tokens", corpus.len(), tokens.len());
+    println!(
+        "   Corpus length: {} bytes -> {} BPE tokens",
+        corpus.len(),
+        tokens.len()
+    );
 
     // 2. Setup Data Loader & Trainer
     let seq_len = 8usize;
     let epochs = 5usize;
-    println!("\n[2] Setting up TextDataLoader (Sequence Length = {}, Epochs = {})...", seq_len, epochs);
+    println!(
+        "\n[2] Setting up TextDataLoader (Sequence Length = {}, Epochs = {})...",
+        seq_len, epochs
+    );
 
     let mut trainer = Trainer::new(2); // 2 Spiking Transformer Blocks
 
@@ -63,7 +70,11 @@ fn main() {
             }
         }
 
-        let avg_epoch_loss = if steps_in_epoch > 0 { epoch_loss_sum / steps_in_epoch as f32 } else { 0.0 };
+        let avg_epoch_loss = if steps_in_epoch > 0 {
+            epoch_loss_sum / steps_in_epoch as f32
+        } else {
+            0.0
+        };
         final_loss = avg_epoch_loss;
 
         let perplexity = (avg_epoch_loss.min(10.0)).exp();
@@ -78,9 +89,14 @@ fn main() {
     println!("\n[4] Training Summary:");
     println!("   Initial Step Loss : {:.4}", initial_loss);
     println!("   Final Epoch Loss  : {:.4}", final_loss);
-    println!("   Loss Reduction    : {:.4} ({:.1}% improvement)",
+    println!(
+        "   Loss Reduction    : {:.4} ({:.1}% improvement)",
         loss_reduction,
-        if initial_loss > 0.0 { (loss_reduction / initial_loss) * 100.0 } else { 0.0 }
+        if initial_loss > 0.0 {
+            (loss_reduction / initial_loss) * 100.0
+        } else {
+            0.0
+        }
     );
 
     // 4. Test Text Completion Generation
@@ -90,23 +106,26 @@ fn main() {
 
     for _ in 0..6 {
         let logits = trainer.model.forward(&gen_tokens);
-        if logits.is_empty() { break; }
+        if logits.is_empty() {
+            break;
+        }
 
         let last_logits = &logits[logits.len() - 1];
-        let mut max_idx = 0usize;
-        let mut max_val = last_logits[0];
-        for i in 1..last_logits.len() {
-            if last_logits[i] > max_val {
-                max_val = last_logits[i];
-                max_idx = i;
-            }
-        }
+        let max_idx = last_logits
+            .iter()
+            .enumerate()
+            .max_by(|&(_, a), &(_, b)| a.partial_cmp(b).unwrap())
+            .map(|(idx, _)| idx)
+            .unwrap_or(0);
         gen_tokens.push(max_idx as u16);
     }
 
     let decoded = tokenizer.decode_tokens(&gen_tokens);
     println!("   Prompt: 'HKL-2 is'");
-    println!("   Generated Completion: '{}'", String::from_utf8_lossy(&decoded));
+    println!(
+        "   Generated Completion: '{}'",
+        String::from_utf8_lossy(&decoded)
+    );
 
     println!("\n=== ✅ Multi-Epoch Corpus Training Completed Successfully ===");
 }
