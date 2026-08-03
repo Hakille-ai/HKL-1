@@ -8,6 +8,7 @@ pub mod audit;
 pub mod controller;
 pub mod episode;
 pub mod executive;
+pub mod metacognition;
 pub mod planner;
 pub mod readiness;
 pub mod runtime_gate;

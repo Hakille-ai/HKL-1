@@ -578,7 +578,7 @@ Ces modules sont le cœur du TDD et doivent être implémentés pour que HKL-1 t
 
 | Priorité | Tâche | Effort |
 |---|---|---|
-| P4 | Tests unitaires et d'intégration | ✅ FAIT — 753 tests (2 stress tests) |
+| P4 | Tests unitaires et d'intégration | ✅ FAIT — 764 tests (2 stress tests) |
 | P4 | CI/CD (GitHub Actions, cross-compilation) | ✅ FAIT (`.github/workflows/ci.yml` + `.cargo/config.toml`) |
 | P4 | BSP cibles matérielles (STM32F7, RISC-V, ESP32) | ✅ FAIT (linker + startup + check_emergencies) |
 | P5 | Sénescence synaptique + migration | ✅ FAIT (senescence + apply_senescence + init_reflex_arcs) |

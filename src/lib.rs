@@ -40,6 +40,8 @@ pub mod telemetry;
 pub mod vision;
 
 #[cfg(feature = "hkl2")]
+pub mod api;
+#[cfg(feature = "hkl2")]
 pub mod cognition;
 #[cfg(feature = "hkl2")]
 pub mod embedding;

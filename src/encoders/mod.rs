@@ -4,4 +4,5 @@
 #![cfg(feature = "hkl2")]
 
 pub mod audio_encoder;
+pub mod sensory_fusion;
 pub mod vision_encoder;

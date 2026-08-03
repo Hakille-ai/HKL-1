@@ -16,8 +16,8 @@
   </a>
   <img src="https://img.shields.io/badge/no__std-bare--metal-critical?style=flat-square" alt="no_std">
   <img src="https://img.shields.io/badge/dependencies-0-success?style=flat-square" alt="Zero deps">
-  <img src="https://img.shields.io/badge/tests-753-green?style=flat-square" alt="Tests">
-  <img src="https://img.shields.io/badge/coverage-Core%20%7C%20SNN%20%7C%20Cognitive%20%7C%20System%20%7C%20Safety%20%7C%20Swarm%20%7C%20HKL--2-brightgreen?style=flat-square" alt="Coverage">
+  <img src="https://img.shields.io/badge/tests-764-green?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/coverage-Core%20%7C%20SNN%20%7C%20Cognitive%20%7C%20System%20%7C%20Safety%20%7C%20Swarm%20%7C%20HKL--2%20%7C%20API-brightgreen?style=flat-square" alt="Coverage">
   <img src="https://img.shields.io/badge/platform-ARM%20Cortex--M7%20%7C%20RISC--RV32%20%7C%20Multi--Core%20PC-informational?style=flat-square" alt="Platforms">
 </p>
 
@@ -31,10 +31,10 @@
 
 **HKL-1 is a from-scratch neuromorphic AI engine** that runs on bare-metal microcontrollers and multi-core systems — no OS, no allocator, no external crates, no floating-point hardware required. It simulates a full spiking neural network with cognitive functions, swarm intelligence, and persistent memory in **~100 KB of Rust**.
 
-**HKL-2** extends the system into a **Spiking Foundation Model** (`--features hkl2`), integrating eligibility propagation (e-prop) online learning, high-dimensional population coding, BPE tokenization, and a Softmax-free Spiking Transformer architecture.
+**HKL-2** extends the system into a **Spiking Foundation Model** (`--features hkl2`), integrating eligibility propagation (e-prop) online learning, high-dimensional population coding, BPE tokenization, multi-modal audio/vision encoders, Softmax-free Spiking Transformer, and the **Native HKL Distributed Swarm API Protocol (`HKL-NP v1`)**.
 
 ```text
-753 tests ✅  ·  0 warnings  ·  0 errors  ·  0 dependencies  ·  e-prop & Spiking Transformer (HKL-2)
+764 tests ✅  ·  0 warnings  ·  0 errors  ·  0 dependencies  ·  Swarm API & Spiking Transformer (HKL-2)
 ```
 
 ---
